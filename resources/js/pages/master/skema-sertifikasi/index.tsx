@@ -1,13 +1,14 @@
+import StatCard from '@/components/master/stat-card';
+import TablePagination from '@/components/master/table-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Paginated, type SharedData, type SkemaSertifikasi } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { BadgeCheck, ChevronLeft, ChevronRight, FileStack, LayoutList, type LucideIcon, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { BadgeCheck, FileStack, LayoutList, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,19 +30,6 @@ interface IndexProps {
         total_unit: number;
         skema_tanpa_unit: number;
     };
-}
-
-function StatCard({ icon: Icon, tone, value, label }: { icon: LucideIcon; tone: string; value: number; label: string }) {
-    return (
-        <div className="bg-card rounded-xl border p-5 shadow-xs">
-            <div className={cn('mb-5 flex size-11 items-center justify-center rounded-xl text-white', tone)}>
-                <Icon className="size-5" />
-            </div>
-
-            <p className="text-3xl font-bold tracking-tight tabular-nums">{value}</p>
-            <p className="text-muted-foreground mt-1 text-sm">{label}</p>
-        </div>
-    );
 }
 
 export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexProps) {
@@ -202,39 +190,13 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
                     </Table>
 
                     {skema.total > 0 && (
-                        <div className="flex items-center justify-between border-t p-4">
-                            <p className="text-muted-foreground text-sm">
-                                Menampilkan {skema.from ?? 0}&ndash;{skema.to ?? 0} dari {skema.total} data
-                            </p>
-
-                            <div className="flex gap-2">
-                                {skema.prev_page_url ? (
-                                    <Button variant="outline" size="icon" className="size-9" asChild>
-                                        <Link href={skema.prev_page_url} preserveScroll preserveState>
-                                            <ChevronLeft />
-                                            <span className="sr-only">Halaman sebelumnya</span>
-                                        </Link>
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="icon" className="size-9" disabled>
-                                        <ChevronLeft />
-                                    </Button>
-                                )}
-
-                                {skema.next_page_url ? (
-                                    <Button variant="outline" size="icon" className="size-9" asChild>
-                                        <Link href={skema.next_page_url} preserveScroll preserveState>
-                                            <ChevronRight />
-                                            <span className="sr-only">Halaman berikutnya</span>
-                                        </Link>
-                                    </Button>
-                                ) : (
-                                    <Button variant="outline" size="icon" className="size-9" disabled>
-                                        <ChevronRight />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                        <TablePagination
+                            from={skema.from}
+                            to={skema.to}
+                            total={skema.total}
+                            prevPageUrl={skema.prev_page_url}
+                            nextPageUrl={skema.next_page_url}
+                        />
                     )}
                 </div>
             </div>

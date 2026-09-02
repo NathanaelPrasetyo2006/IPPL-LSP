@@ -19,6 +19,7 @@ export interface NavItem {
     url: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    items?: NavItem[];
 }
 
 export interface SharedData {
@@ -69,4 +70,21 @@ export interface User {
     created_at: string;
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
+}
+
+export interface Tuk {
+    id_tuk: number;
+    kode: string;
+    nama: string;
+    jenis: string;
+    alamat: string;
+    kota: string;
+    penanggung_jawab: string | null;
+    telepon: string | null;
+    status: string;
+}
+
+export interface TukOptions {
+    jenis: Record<string, string>;
+    status: Record<string, string>;
 }

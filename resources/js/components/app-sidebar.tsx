@@ -14,8 +14,18 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Master Data',
-        url: '/master/skema-sertifikasi',
+        url: '/master',
         icon: Database,
+        items: [
+            {
+                title: 'Skema Sertifikasi',
+                url: '/master/skema-sertifikasi',
+            },
+            {
+                title: 'Lokasi TUK',
+                url: '/master/tuk',
+            },
+        ],
     },
 ];
 
