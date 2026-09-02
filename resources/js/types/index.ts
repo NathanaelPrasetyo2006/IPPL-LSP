@@ -25,7 +25,39 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    flash: Flash;
     [key: string]: unknown;
+}
+
+export interface Flash {
+    success?: string | null;
+    error?: string | null;
+}
+
+export interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+export interface Paginated<T> {
+    data: T[];
+    links: PaginationLink[];
+    prev_page_url: string | null;
+    next_page_url: string | null;
+    current_page: number;
+    from: number | null;
+    to: number | null;
+    per_page: number;
+    last_page: number;
+    total: number;
+}
+
+export interface SkemaSertifikasi {
+    id_skema: number;
+    judul: string;
+    nomor: string;
+    unit_kompetensi_count?: number;
 }
 
 export interface User {
