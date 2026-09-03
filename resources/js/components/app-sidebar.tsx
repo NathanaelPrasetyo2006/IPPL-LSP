@@ -25,6 +25,10 @@ const mainNavItems: NavItem[] = [
                 title: 'Lokasi TUK',
                 url: '/master/tuk',
             },
+            {
+                title: 'Akun Asesor',
+                url: '/master/asesor',
+            },
         ],
     },
 ];

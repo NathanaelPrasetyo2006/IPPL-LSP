@@ -88,3 +88,11 @@ export interface TukOptions {
     jenis: Record<string, string>;
     status: Record<string, string>;
 }
+
+export interface AsesorAccount {
+    id_asesor: number;
+    nama: string;
+    no_reg: string;
+    email: string | null;
+    dibuat_pada: string | null;
+}

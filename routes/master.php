@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Master\AsesorController;
 use App\Http\Controllers\Master\SkemaSertifikasiController;
 use App\Http\Controllers\Master\TukController;
 use Illuminate\Support\Facades\Route;
@@ -13,4 +14,6 @@ Route::middleware('auth')
             ->except('show');
 
         Route::resource('tuk', TukController::class)->except('show');
+
+        Route::resource('asesor', AsesorController::class)->except('show');
     });
