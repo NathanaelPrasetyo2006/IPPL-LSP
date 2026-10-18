@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData, type UserRole } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BadgeCheck, ClipboardList, type LucideIcon, MapPin, UserCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ClipboardList, IdCard, type LucideIcon, MapPin, UserCheck, UserPen } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -48,6 +48,20 @@ const SHORTCUTS: Record<UserRole, Shortcut[]> = {
         },
     ],
     asesor: [
+        {
+            title: 'Biodata Asesor',
+            description: 'Lengkapi data diri dan pas foto Anda.',
+            href: '/asesor/biodata',
+            icon: UserPen,
+            tone: 'bg-emerald-600',
+        },
+        {
+            title: 'Kartu Tanda Asesor',
+            description: 'Unduh atau cetak kartu identitas asesor.',
+            href: '/asesor/kartu',
+            icon: IdCard,
+            tone: 'bg-amber-500',
+        },
         {
             title: 'Skema Sertifikasi',
             description: 'Lihat skema dan unit kompetensi yang diujikan.',

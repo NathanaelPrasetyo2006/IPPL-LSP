@@ -114,3 +114,42 @@ export interface AsesorAccount {
 
 /** Tahap akun asesor: menunggu verifikasi email → masih password sementara → aktif. */
 export type AsesorStatus = 'menunggu_verifikasi' | 'password_sementara' | 'aktif';
+
+/** Biodata yang diisi sendiri oleh asesor dari portalnya. */
+export interface AsesorBiodata {
+    nama: string;
+    no_reg: string;
+    email: string;
+    lengkap: boolean;
+    foto_url: string | null;
+    nik: string | null;
+    tempat_lahir: string | null;
+    tgl_lahir: string | null;
+    jenis_kelamin: string | null;
+    no_telp: string | null;
+    alamat: string | null;
+    kota: string | null;
+    provinsi: string | null;
+    pendidikan_terakhir: string | null;
+    instansi: string | null;
+    bidang_keahlian: string | null;
+    masa_berlaku_sertifikat: string | null;
+    diperbarui_pada: string | null;
+}
+
+export interface AsesorBiodataOptions {
+    jenis_kelamin: Record<string, string>;
+    pendidikan: Record<string, string>;
+}
+
+/** Data yang dicetak pada Kartu Tanda Asesor. */
+export interface KartuAsesor {
+    nama: string;
+    no_reg: string;
+    lengkap: boolean;
+    foto_url: string | null;
+    bidang_keahlian: string | null;
+    instansi: string | null;
+    masa_berlaku_sertifikat: string | null;
+    kedaluwarsa: boolean;
+}

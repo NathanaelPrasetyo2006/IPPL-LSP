@@ -1,0 +1,109 @@
+<?php
+
+namespace App\Http\Requests\Asesor;
+
+use App\Models\Asesor;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class BiodataRequest extends FormRequest
+{
+    /**
+     * Nama dan no. registrasi tidak ada di sini: keduanya mengikuti sertifikat
+     * dan hanya boleh diubah admin LSP.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        /** @var Asesor|null $asesor */
+        $asesor = $this->user()?->asesor;
+
+        return [
+            'nik' => [
+                'required',
+                'digits:16',
+                Rule::unique('asesor', 'nik')->ignore($asesor?->id_asesor, 'id_asesor'),
+            ],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tgl_lahir' => ['required', 'date', 'before:-17 years'],
+            'jenis_kelamin' => ['required', Rule::in(array_keys(Asesor::JENIS_KELAMIN))],
+            'no_telp' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
+            'alamat' => ['required', 'string', 'max:500'],
+            'kota' => ['required', 'string', 'max:100'],
+            'provinsi' => ['required', 'string', 'max:100'],
+            'pendidikan_terakhir' => ['required', Rule::in(array_keys(Asesor::PENDIDIKAN))],
+            'instansi' => ['nullable', 'string', 'max:255'],
+            'bidang_keahlian' => ['required', 'string', 'max:255'],
+            'masa_berlaku_sertifikat' => ['required', 'date'],
+            // Pas foto wajib saat pertama kali; setelahnya boleh dikosongkan untuk memakai foto lama.
+            'pas_foto' => [
+                $asesor?->file_pas_foto ? 'nullable' : 'required',
+                'image',
+                'mimes:jpg,jpeg,png',
+                'max:2048',
+            ],
+        ];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'nik' => 'NIK',
+            'tempat_lahir' => 'tempat lahir',
+            'tgl_lahir' => 'tanggal lahir',
+            'jenis_kelamin' => 'jenis kelamin',
+            'no_telp' => 'no. telepon',
+            'alamat' => 'alamat',
+            'kota' => 'kota/kabupaten',
+            'provinsi' => 'provinsi',
+            'pendidikan_terakhir' => 'pendidikan terakhir',
+            'instansi' => 'instansi',
+            'bidang_keahlian' => 'bidang keahlian',
+            'masa_berlaku_sertifikat' => 'masa berlaku sertifikat',
+            'pas_foto' => 'pas foto',
+        ];
+    }
+
+    /**
+     * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'nik.digits' => 'NIK harus terdiri dari 16 digit angka.',
+            'nik.unique' => 'NIK :input sudah terdaftar pada asesor lain.',
+            'tgl_lahir.before' => 'Usia asesor minimal 17 tahun.',
+            'no_telp.regex' => 'No. telepon hanya boleh berisi angka (boleh diawali +), 9–15 digit.',
+            'pas_foto.max' => 'Ukuran pas foto maksimal 2 MB.',
+        ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $trim = fn (string $key) => is_string($this->input($key)) ? trim($this->input($key)) : $this->input($key);
+
+        $this->merge([
+            'nik' => $trim('nik'),
+            'tempat_lahir' => $trim('tempat_lahir'),
+            // Spasi dan tanda hubung pada nomor telepon dibuang supaya formatnya seragam.
+            'no_telp' => is_string($this->no_telp) ? preg_replace('/[\s\-()]/', '', $this->no_telp) : $this->no_telp,
+            'alamat' => $trim('alamat'),
+            'kota' => $trim('kota'),
+            'provinsi' => $trim('provinsi'),
+            'instansi' => $trim('instansi'),
+            'bidang_keahlian' => $trim('bidang_keahlian'),
+        ]);
+    }
+}

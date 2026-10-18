@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData, type UserRole } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Database, LayoutGrid } from 'lucide-react';
+import { Database, IdCard, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -31,6 +31,22 @@ const mainNavItems: NavItem[] = [
                 title: 'Akun Asesor',
                 url: '/master/asesor',
                 roles: ['admin'],
+            },
+        ],
+    },
+    {
+        title: 'Profil Asesor',
+        url: '/asesor',
+        icon: IdCard,
+        roles: ['asesor'],
+        items: [
+            {
+                title: 'Biodata',
+                url: '/asesor/biodata',
+            },
+            {
+                title: 'Kartu Tanda Asesor',
+                url: '/asesor/kartu',
             },
         ],
     },
