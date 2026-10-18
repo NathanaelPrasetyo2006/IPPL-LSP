@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -177,7 +178,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="masa_berlaku_sertifikat">Sertifikat asesor berlaku s.d. *</Label>
-                                <Input {...field('masa_berlaku_sertifikat')} type="date" required />
+                                <DateInput {...field('masa_berlaku_sertifikat')} required />
                                 <p className="text-muted-foreground text-xs">Tanggal akhir masa berlaku sertifikat asesor (MET) dari BNSP.</p>
                                 <InputError message={errors.masa_berlaku_sertifikat} />
                             </div>
@@ -272,7 +273,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="tgl_lahir">Tanggal lahir *</Label>
-                                <Input {...field('tgl_lahir')} type="date" required autoComplete="bday" />
+                                <DateInput {...field('tgl_lahir')} required autoComplete="bday" />
                                 <InputError message={errors.tgl_lahir} />
                             </div>
                         </div>

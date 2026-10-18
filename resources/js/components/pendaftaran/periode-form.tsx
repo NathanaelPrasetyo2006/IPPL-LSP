@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -78,21 +79,14 @@ export default function PeriodeForm({
                 <div className="grid gap-6 md:grid-cols-3">
                     <div className="grid gap-2">
                         <Label htmlFor="tanggal_buka">Tanggal buka</Label>
-                        <Input
-                            id="tanggal_buka"
-                            type="date"
-                            value={data.tanggal_buka}
-                            onChange={(e) => setData('tanggal_buka', e.target.value)}
-                            required
-                        />
+                        <DateInput id="tanggal_buka" value={data.tanggal_buka} onChange={(e) => setData('tanggal_buka', e.target.value)} required />
                         <InputError message={errors.tanggal_buka} />
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="tanggal_tutup">Tanggal tutup</Label>
-                        <Input
+                        <DateInput
                             id="tanggal_tutup"
-                            type="date"
                             min={data.tanggal_buka || undefined}
                             value={data.tanggal_tutup}
                             onChange={(e) => setData('tanggal_tutup', e.target.value)}

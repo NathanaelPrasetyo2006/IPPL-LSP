@@ -2,6 +2,7 @@ import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -277,7 +278,7 @@ export default function CreateApl01({ periode, skema, kodeAsesi, email, profil, 
                             </Field>
 
                             <Field id="tgl_lahir" label="Tanggal lahir" error={err.tgl_lahir} required>
-                                <Input {...text('tgl_lahir')} type="date" required autoComplete="bday" />
+                                <DateInput {...text('tgl_lahir')} required autoComplete="bday" />
                             </Field>
 
                             <Field id="jenis_kelamin" label="Jenis kelamin" error={err.jenis_kelamin} required>
