@@ -95,7 +95,7 @@ class TukController extends Controller
     }
 
     /**
-     * Hapus lokasi TUK.
+     * Hapus lokasi TUK (soft delete, data masih bisa dipulihkan).
      */
     public function destroy(Tuk $tuk): RedirectResponse
     {

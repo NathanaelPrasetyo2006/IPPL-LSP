@@ -20,6 +20,8 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     items?: NavItem[];
+    /** Batasi menu ke peran tertentu; kosong berarti tampil untuk semua peran. */
+    roles?: UserRole[];
 }
 
 export interface SharedData {
@@ -59,12 +61,24 @@ export interface SkemaSertifikasi {
     judul: string;
     nomor: string;
     unit_kompetensi_count?: number;
+    unit_kompetensi?: UnitKompetensi[];
 }
+
+export interface UnitKompetensi {
+    id_unit_kompetensi: number;
+    id_skema: number;
+    kode: string;
+    judul: string;
+    urutan: number;
+}
+
+export type UserRole = 'admin' | 'asesor' | 'asesi';
 
 export interface User {
     id: number;
     name: string;
     email: string;
+    role: UserRole;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;
@@ -95,4 +109,8 @@ export interface AsesorAccount {
     no_reg: string;
     email: string | null;
     dibuat_pada: string | null;
+    status: AsesorStatus;
 }
+
+/** Tahap akun asesor: menunggu verifikasi email → masih password sementara → aktif. */
+export type AsesorStatus = 'menunggu_verifikasi' | 'password_sementara' | 'aktif';

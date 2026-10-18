@@ -25,7 +25,8 @@ class SkemaSertifikasiRequest extends FormRequest
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('skema_sertifikasi', 'nomor')->ignore($skema?->id_skema, 'id_skema'),
+                // Kode milik skema yang sudah dihapus boleh dipakai lagi.
+                Rule::unique('skema_sertifikasi', 'nomor')->whereNull('deleted_at')->ignore($skema?->id_skema, 'id_skema'),
             ],
         ];
     }

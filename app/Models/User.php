@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -28,6 +30,8 @@ class User extends Authenticatable
     protected $fillable = [
         'email',
         'password',
+        'role',
+        'must_change_password',
     ];
 
     /**
@@ -37,6 +41,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     /**
@@ -50,6 +55,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Pemilik akun sudah membuktikan email-nya (lewat link verifikasi atau reset password).
+     */
+    public function isVerified(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
+
+    /**
+     * Kirim email reset password berbahasa Indonesia.
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -58,6 +81,9 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'role' => UserRole::class,
+            'must_change_password' => 'boolean',
+            'email_verified_at' => 'datetime',
             'created_at' => 'datetime',
         ];
     }

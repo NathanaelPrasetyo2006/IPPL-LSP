@@ -1,23 +1,31 @@
 <?php
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ResetPasswordNotification as ResetPassword;
 use Illuminate\Support\Facades\Notification;
 
-test('reset password link screen can be rendered', function () {
-    $response = $this->get('/forgot-password');
-
-    $response->assertStatus(200);
-});
+test('reset password link screen can be rendered for each role', function (string $role) {
+    $this->get("/forgot-password/{$role}")->assertStatus(200);
+})->with(['admin', 'asesor', 'asesi']);
 
 test('reset password link can be requested', function () {
     Notification::fake();
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password/asesi', ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class);
+});
+
+test('reset password link is not sent through the portal of another role', function () {
+    Notification::fake();
+
+    $user = User::factory()->create();
+
+    $this->post('/forgot-password/admin', ['email' => $user->email])->assertSessionHas('status');
+
+    Notification::assertNothingSent();
 });
 
 test('reset password screen can be rendered', function () {
@@ -25,7 +33,7 @@ test('reset password screen can be rendered', function () {
 
     $user = User::factory()->create();
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password/asesi', ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
         $response = $this->get('/reset-password/'.$notification->token);
@@ -39,9 +47,9 @@ test('reset password screen can be rendered', function () {
 test('password can be reset with valid token', function () {
     Notification::fake();
 
-    $user = User::factory()->create();
+    $user = User::factory()->asesor()->create(['must_change_password' => true]);
 
-    $this->post('/forgot-password', ['email' => $user->email]);
+    $this->post('/forgot-password/asesor', ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
         $response = $this->post('/reset-password', [
@@ -53,7 +61,9 @@ test('password can be reset with valid token', function () {
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('login.role', 'asesor'));
+
+        expect($user->fresh()->must_change_password)->toBeFalse();
 
         return true;
     });

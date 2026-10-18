@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use Database\Factories\UnitKompetensiFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UnitKompetensi extends Model
 {
+    /** @use HasFactory<UnitKompetensiFactory> */
+    use HasFactory, SoftDeletes;
+
     protected $table = 'unit_kompetensi';
 
     protected $primaryKey = 'id_unit_kompetensi';

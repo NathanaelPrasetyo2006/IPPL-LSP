@@ -6,11 +6,12 @@ use Database\Factories\SkemaSertifikasiFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SkemaSertifikasi extends Model
 {
     /** @use HasFactory<SkemaSertifikasiFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'skema_sertifikasi';
 

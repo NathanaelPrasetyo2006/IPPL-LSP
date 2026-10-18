@@ -25,6 +25,7 @@ interface EditAsesorProps {
         nama: string;
         no_reg: string;
         email: string | null;
+        terverifikasi: boolean;
     };
 }
 
@@ -33,7 +34,6 @@ export default function EditAsesor({ asesor }: EditAsesorProps) {
         nama: asesor.nama,
         no_reg: asesor.no_reg,
         email: asesor.email ?? '',
-        password: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -50,7 +50,7 @@ export default function EditAsesor({ asesor }: EditAsesorProps) {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Ubah Akun Asesor</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Perbarui identitas <span className="font-medium">{asesor.nama}</span> atau setel ulang password sementaranya.
+                        Perbarui identitas dan email login <span className="font-medium">{asesor.nama}</span>.
                     </p>
                 </div>
 
@@ -61,7 +61,11 @@ export default function EditAsesor({ asesor }: EditAsesorProps) {
                     processing={processing}
                     onSubmit={submit}
                     submitLabel="Simpan perubahan"
-                    passwordOptional
+                    notice={
+                        asesor.terverifikasi
+                            ? 'Akun ini sudah aktif. Bila asesor lupa password, arahkan untuk memakai menu "Lupa password" di halaman masuk asesor.'
+                            : 'Akun ini belum diverifikasi. Bila email diubah, link verifikasi baru otomatis dikirim ke email tersebut.'
+                    }
                 />
             </div>
         </AppLayout>

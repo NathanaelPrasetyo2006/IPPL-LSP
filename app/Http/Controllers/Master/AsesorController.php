@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers\Master;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Master\AsesorRequest;
 use App\Models\Asesor;
 use App\Models\User;
+use App\Notifications\AsesorVerifikasiAkun;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,7 +25,7 @@ class AsesorController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $asesor = Asesor::query()
-            ->with('user:id_user,email,created_at')
+            ->with('user:id_user,email,created_at,must_change_password,email_verified_at')
             ->when($search !== '', function ($query) use ($search) {
                 // lower() dipakai supaya pencarian tetap case-insensitive di PostgreSQL.
                 $keyword = '%'.mb_strtolower($search).'%';
@@ -42,15 +45,18 @@ class AsesorController extends Controller
                 'no_reg' => $asesor->no_reg,
                 'email' => $asesor->user?->email,
                 'dibuat_pada' => $asesor->user?->created_at?->translatedFormat('d M Y'),
+                'status' => $this->status($asesor->user),
             ]);
+
+        $akunAsesor = User::query()->where('role', UserRole::Asesor);
 
         return Inertia::render('master/asesor/index', [
             'asesor' => $asesor,
             'filters' => ['search' => $search],
             'stats' => [
                 'total_asesor' => Asesor::count(),
-                'akun_bulan_ini' => User::query()->whereHas('asesor')->where('created_at', '>=', now()->startOfMonth())->count(),
-                'sedang_bertugas' => DB::table('asesmen_mandiri')->distinct()->count('id_asesor'),
+                'menunggu_verifikasi' => (clone $akunAsesor)->whereNull('email_verified_at')->count(),
+                'belum_ganti_password' => (clone $akunAsesor)->whereNotNull('email_verified_at')->where('must_change_password', true)->count(),
             ],
         ]);
     }
@@ -64,16 +70,20 @@ class AsesorController extends Controller
     }
 
     /**
-     * Simpan akun asesor baru beserta akun loginnya.
+     * Simpan akun asesor baru lalu kirim link verifikasi ke email-nya.
      */
     public function store(AsesorRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($data) {
+        $user = DB::transaction(function () use ($data) {
             $user = User::create([
                 'email' => $data['email'],
-                'password' => $data['password'],
+                // Password acak yang tidak diketahui siapa pun; akun belum bisa dipakai login
+                // sampai asesor memverifikasi email dan menerima password sementara.
+                'password' => Str::password(32),
+                'role' => UserRole::Asesor,
+                'must_change_password' => true,
             ]);
 
             Asesor::create([
@@ -81,10 +91,14 @@ class AsesorController extends Controller
                 'nama' => $data['nama'],
                 'no_reg' => $data['no_reg'],
             ]);
+
+            return $user;
         });
 
+        $user->notify(new AsesorVerifikasiAkun($data['nama']));
+
         return to_route('master.asesor.index')
-            ->with('success', "Akun asesor {$data['nama']} berhasil dibuat. Serahkan password sementara ke asesor yang bersangkutan.");
+            ->with('success', "Akun asesor {$data['nama']} berhasil dibuat. Link verifikasi sudah dikirim ke {$data['email']}.");
     }
 
     /**
@@ -92,7 +106,7 @@ class AsesorController extends Controller
      */
     public function edit(Asesor $asesor): Response
     {
-        $asesor->load('user:id_user,email');
+        $asesor->load('user:id_user,email,email_verified_at');
 
         return Inertia::render('master/asesor/edit', [
             'asesor' => [
@@ -100,42 +114,67 @@ class AsesorController extends Controller
                 'nama' => $asesor->nama,
                 'no_reg' => $asesor->no_reg,
                 'email' => $asesor->user?->email,
+                'terverifikasi' => (bool) $asesor->user?->isVerified(),
             ],
         ]);
     }
 
     /**
-     * Perbarui data asesor dan akun loginnya.
+     * Perbarui data asesor dan email akun loginnya.
      */
     public function update(AsesorRequest $request, Asesor $asesor): RedirectResponse
     {
         $data = $request->validated();
+        $user = $asesor->user;
 
-        DB::transaction(function () use ($data, $asesor) {
+        // Bila email akun yang belum aktif dikoreksi, link verifikasi dikirim ulang ke email baru.
+        $kirimUlang = $user && ! $user->isVerified() && $user->email !== $data['email'];
+
+        DB::transaction(function () use ($data, $asesor, $user) {
             $asesor->update([
                 'nama' => $data['nama'],
                 'no_reg' => $data['no_reg'],
             ]);
 
-            $account = ['email' => $data['email']];
-
-            // Password hanya ditimpa kalau admin mengisi password sementara yang baru.
-            if (filled($data['password'] ?? null)) {
-                $account['password'] = $data['password'];
-            }
-
-            $asesor->user?->update($account);
+            $user?->update(['email' => $data['email']]);
         });
 
+        if ($kirimUlang) {
+            $user->notify(new AsesorVerifikasiAkun($data['nama']));
+        }
+
         return to_route('master.asesor.index')
-            ->with('success', 'Data akun asesor berhasil diperbarui.');
+            ->with('success', $kirimUlang
+                ? "Data akun asesor diperbarui dan link verifikasi dikirim ulang ke {$data['email']}."
+                : 'Data akun asesor berhasil diperbarui.');
     }
 
     /**
-     * Hapus akun asesor beserta akun loginnya.
+     * Kirim ulang link verifikasi untuk akun yang belum aktif.
+     */
+    public function resendVerification(Asesor $asesor): RedirectResponse
+    {
+        $user = $asesor->user;
+
+        if (! $user || $user->isVerified()) {
+            return back()->with('error', 'Akun asesor ini sudah terverifikasi.');
+        }
+
+        $user->notify(new AsesorVerifikasiAkun($asesor->nama));
+
+        return back()->with('success', "Link verifikasi dikirim ulang ke {$user->email}.");
+    }
+
+    /**
+     * Hapus akun asesor yang belum diverifikasi beserta akun loginnya.
      */
     public function destroy(Asesor $asesor): RedirectResponse
     {
+        // Akun yang sudah aktif dipertahankan karena sudah dipakai pemiliknya.
+        if ($asesor->user?->isVerified()) {
+            return back()->with('error', "Akun {$asesor->nama} sudah terverifikasi dan tidak dapat dihapus.");
+        }
+
         // asesmen_mandiri.id_asesor tanpa cascade, jadi asesor yang sudah bertugas
         // akan ditolak database. Dicegah lebih awal supaya pesannya jelas.
         if (DB::table('asesmen_mandiri')->where('id_asesor', $asesor->id_asesor)->exists()) {
@@ -147,5 +186,17 @@ class AsesorController extends Controller
 
         return to_route('master.asesor.index')
             ->with('success', 'Akun asesor berhasil dihapus.');
+    }
+
+    /**
+     * Tahap akun: menunggu verifikasi → masih password sementara → aktif.
+     */
+    private function status(?User $user): string
+    {
+        return match (true) {
+            ! $user?->isVerified() => 'menunggu_verifikasi',
+            $user->must_change_password => 'password_sementara',
+            default => 'aktif',
+        };
     }
 }

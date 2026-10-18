@@ -6,12 +6,12 @@ use App\Models\Asesor;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class AsesorRequest extends FormRequest
 {
     /**
-     * Get the validation rules that apply to the request.
+     * Password sementara tidak lagi diisi admin: sistem membuatnya dan mengirim
+     * lewat email setelah asesor memverifikasi akunnya.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -36,8 +36,6 @@ class AsesorRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'email')->ignore($asesor?->id_user, 'id_user'),
             ],
-            // Saat mengubah data, password sementara hanya diganti bila diisi.
-            'password' => [$asesor ? 'nullable' : 'required', 'string', Password::defaults()],
         ];
     }
 
@@ -52,7 +50,6 @@ class AsesorRequest extends FormRequest
             'nama' => 'nama asesor',
             'no_reg' => 'no. registrasi/MET',
             'email' => 'email',
-            'password' => 'password sementara',
         ];
     }
 

@@ -1,8 +1,8 @@
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type NavItem, type SharedData, type UserRole } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 import { Database, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -16,6 +16,8 @@ const mainNavItems: NavItem[] = [
         title: 'Master Data',
         url: '/master',
         icon: Database,
+        // Asesor melihat skema & TUK dalam mode baca saja.
+        roles: ['admin', 'asesor'],
         items: [
             {
                 title: 'Skema Sertifikasi',
@@ -28,12 +30,24 @@ const mainNavItems: NavItem[] = [
             {
                 title: 'Akun Asesor',
                 url: '/master/asesor',
+                roles: ['admin'],
             },
         ],
     },
 ];
 
+/** Saring menu (termasuk submenu) sesuai peran pengguna. */
+function filterByRole(items: NavItem[], role: UserRole): NavItem[] {
+    return items
+        .filter((item) => !item.roles || item.roles.includes(role))
+        .map((item) => (item.items ? { ...item, items: filterByRole(item.items, role) } : item));
+}
+
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+
+    const navItems = filterByRole(mainNavItems, auth.user.role);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -49,7 +63,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={navItems} />
             </SidebarContent>
 
             <SidebarFooter>

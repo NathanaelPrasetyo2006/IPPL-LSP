@@ -24,7 +24,6 @@ export default function CreateAsesor() {
         nama: '',
         no_reg: '',
         email: '',
-        password: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -40,12 +39,27 @@ export default function CreateAsesor() {
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Buat Akun Asesor</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Akun dasar berisi identitas asesor dan kredensial login awal untuk masuk ke sistem.
-                    </p>
+                    <p className="text-muted-foreground mt-1 text-sm">Akun dasar berisi identitas asesor dan email untuk login ke sistem.</p>
                 </div>
 
-                <AsesorForm data={data} setData={setData} errors={errors} processing={processing} onSubmit={submit} submitLabel="Buat akun" />
+                <AsesorForm
+                    data={data}
+                    setData={setData}
+                    errors={errors}
+                    processing={processing}
+                    onSubmit={submit}
+                    submitLabel="Buat akun & kirim verifikasi"
+                    notice={
+                        <>
+                            <p className="font-medium">Bagaimana akun ini diaktifkan?</p>
+                            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+                                <li>Sistem mengirim link verifikasi ke email asesor.</li>
+                                <li>Setelah link diklik, akun aktif dan password sementara dikirim otomatis ke email yang sama.</li>
+                                <li>Asesor wajib mengganti password sementara saat login pertama.</li>
+                            </ol>
+                        </>
+                    }
+                />
             </div>
         </AppLayout>
     );

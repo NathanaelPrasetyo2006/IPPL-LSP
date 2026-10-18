@@ -2,24 +2,32 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Show the login page.
+     * Portal pemilihan peran sebelum masuk.
      */
-    public function create(Request $request): Response
+    public function portal(): Response
+    {
+        return Inertia::render('auth/login-portal');
+    }
+
+    /**
+     * Formulir login untuk satu peran.
+     */
+    public function create(Request $request, UserRole $role): Response
     {
         return Inertia::render('auth/login', [
-            'canResetPassword' => Route::has('password.request'),
+            'role' => $role->value,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -27,9 +35,9 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request, UserRole $role): RedirectResponse
     {
-        $request->authenticate();
+        $request->authenticate($role);
 
         $request->session()->regenerate();
 

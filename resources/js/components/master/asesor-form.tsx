@@ -3,14 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
-import { Check, Copy, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { MailCheck } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
 export interface AsesorFormData {
     nama: string;
     no_reg: string;
     email: string;
-    password: string;
 }
 
 interface AsesorFormProps {
@@ -20,39 +19,11 @@ interface AsesorFormProps {
     processing: boolean;
     onSubmit: FormEventHandler;
     submitLabel: string;
-    /** Saat mengubah data, password hanya diganti bila diisi. */
-    passwordOptional?: boolean;
+    /** Keterangan alur aktivasi di bawah form. */
+    notice?: React.ReactNode;
 }
 
-// Huruf/angka yang mudah dibedakan saat password dibacakan atau diketik ulang asesor.
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-
-function generatePassword(length = 12): string {
-    const values = new Uint32Array(length);
-    crypto.getRandomValues(values);
-
-    return Array.from(values, (value) => ALPHABET[value % ALPHABET.length]).join('');
-}
-
-export default function AsesorForm({ data, setData, errors, processing, onSubmit, submitLabel, passwordOptional = false }: AsesorFormProps) {
-    const [visible, setVisible] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-    const copyPassword = async () => {
-        if (!data.password) {
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(data.password);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            // Clipboard bisa ditolak browser (mis. bukan HTTPS); password tetap bisa disalin manual.
-            setVisible(true);
-        }
-    };
-
+export default function AsesorForm({ data, setData, errors, processing, onSubmit, submitLabel, notice }: AsesorFormProps) {
     return (
         <form onSubmit={onSubmit} className="bg-card max-w-3xl rounded-xl border shadow-xs">
             <div className="space-y-6 p-6">
@@ -104,67 +75,19 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
                         placeholder="asesor@lsp.example.id"
                     />
 
-                    <p className="text-muted-foreground text-xs">Dipakai asesor untuk login ke sistem.</p>
+                    <p className="text-muted-foreground text-xs">
+                        Dipakai asesor untuk login. Pastikan email aktif karena link verifikasi dikirim ke sini.
+                    </p>
 
                     <InputError message={errors.email} />
                 </div>
 
-                <div className="grid gap-2 border-t pt-6">
-                    <Label htmlFor="password">
-                        Password sementara
-                        {passwordOptional && <span className="text-muted-foreground font-normal"> (kosongkan bila tidak diubah)</span>}
-                    </Label>
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <div className="relative flex-1">
-                            <Input
-                                id="password"
-                                type={visible ? 'text' : 'password'}
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                required={!passwordOptional}
-                                autoComplete="new-password"
-                                placeholder="Minimal 8 karakter"
-                                className="pr-10"
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() => setVisible((current) => !current)}
-                                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1"
-                                aria-label={visible ? 'Sembunyikan password' : 'Tampilkan password'}
-                            >
-                                {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                            </button>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setData('password', generatePassword());
-                                    setVisible(true);
-                                }}
-                            >
-                                <RefreshCw />
-                                Generate
-                            </Button>
-
-                            <Button type="button" variant="outline" onClick={copyPassword} disabled={!data.password}>
-                                {copied ? <Check /> : <Copy />}
-                                {copied ? 'Tersalin' : 'Salin'}
-                            </Button>
-                        </div>
+                {notice && (
+                    <div className="flex items-start gap-3 rounded-lg border border-sky-500/30 bg-sky-50 p-3 dark:bg-sky-950/40">
+                        <MailCheck className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                        <div className="text-sm text-sky-800 dark:text-sky-300">{notice}</div>
                     </div>
-
-                    <p className="text-muted-foreground text-xs">
-                        Catat atau salin password ini sekarang &mdash; setelah disimpan, password tidak bisa dilihat lagi dan hanya bisa diganti
-                        dengan yang baru.
-                    </p>
-
-                    <InputError message={errors.password} />
-                </div>
+                )}
             </div>
 
             <div className="bg-muted/30 flex items-center gap-3 rounded-b-xl border-t px-6 py-4">

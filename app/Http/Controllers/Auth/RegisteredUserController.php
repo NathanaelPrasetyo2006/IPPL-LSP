@@ -2,21 +2,22 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
     /**
-     * Show the registration page.
+     * Halaman registrasi akun asesi.
      */
     public function create(): Response
     {
@@ -24,28 +25,33 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Handle an incoming registration request.
+     * Buat akun asesi baru. Data diri (APL-01) dilengkapi setelah login.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+        ], [
+            'email.unique' => 'Email ini sudah terdaftar. Silakan masuk atau gunakan fitur lupa password.',
+            'email.lowercase' => 'Email harus ditulis dengan huruf kecil.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ], [
+            'password' => 'password',
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => UserRole::Asesi,
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        return to_route('dashboard')->with('success', 'Akun asesi berhasil dibuat. Selamat datang di Sistem Informasi LSP.');
     }
 }

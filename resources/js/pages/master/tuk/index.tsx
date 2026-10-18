@@ -1,10 +1,11 @@
+import ConfirmDeleteDialog from '@/components/master/confirm-delete-dialog';
 import StatCard from '@/components/master/stat-card';
 import TablePagination from '@/components/master/table-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useRole } from '@/hooks/use-role';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Paginated, type SharedData, type Tuk, type TukOptions } from '@/types';
@@ -41,6 +42,7 @@ const statusTone: Record<string, string> = {
 
 export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
     const { flash } = usePage<SharedData>().props;
+    const { isAdmin } = useRole();
 
     const [search, setSearch] = useState(filters.search);
     const [target, setTarget] = useState<Tuk | null>(null);
@@ -102,15 +104,21 @@ export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Master Data Lokasi TUK</h1>
-                        <p className="text-muted-foreground mt-1 text-sm">Kelola daftar Tempat Uji Kompetensi beserta status kelayakannya.</p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            {isAdmin
+                                ? 'Kelola daftar Tempat Uji Kompetensi beserta status kelayakannya.'
+                                : 'Daftar Tempat Uji Kompetensi beserta status kelayakannya.'}
+                        </p>
                     </div>
 
-                    <Button asChild className="shrink-0">
-                        <Link href={route('master.tuk.create')}>
-                            <Plus />
-                            Tambah TUK
-                        </Link>
-                    </Button>
+                    {isAdmin && (
+                        <Button asChild className="shrink-0">
+                            <Link href={route('master.tuk.create')}>
+                                <Plus />
+                                Tambah TUK
+                            </Link>
+                        </Button>
+                    )}
                 </div>
 
                 {flash.success && (
@@ -177,14 +185,14 @@ export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
                                 <TableHead className="w-44">Jenis</TableHead>
                                 <TableHead className="w-36">Kota</TableHead>
                                 <TableHead className="w-28">Status</TableHead>
-                                <TableHead className="w-28 pr-5 text-right">Aksi</TableHead>
+                                {isAdmin && <TableHead className="w-28 pr-5 text-right">Aksi</TableHead>}
                             </TableRow>
                         </TableHeader>
 
                         <TableBody>
                             {tuk.data.length === 0 && (
                                 <TableRow className="hover:bg-transparent">
-                                    <TableCell colSpan={7} className="text-muted-foreground py-14 text-center">
+                                    <TableCell colSpan={isAdmin ? 7 : 6} className="text-muted-foreground py-14 text-center">
                                         {filters.search || filters.status
                                             ? 'Tidak ada lokasi TUK yang cocok dengan filter.'
                                             : 'Belum ada lokasi TUK.'}
@@ -193,18 +201,22 @@ export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
                             )}
 
                             {tuk.data.map((item, index) => (
-                                <TableRow key={item.id_tuk} className="group">
+                                <TableRow key={item.id_tuk}>
                                     <TableCell className="text-muted-foreground pl-5 tabular-nums">{(tuk.from ?? 0) + index}</TableCell>
 
                                     <TableCell className="font-medium tracking-tight">{item.kode}</TableCell>
 
                                     <TableCell>
-                                        <Link
-                                            href={route('master.tuk.edit', item.id_tuk)}
-                                            className="font-medium text-amber-700 hover:underline dark:text-amber-500"
-                                        >
-                                            {item.nama}
-                                        </Link>
+                                        {isAdmin ? (
+                                            <Link
+                                                href={route('master.tuk.edit', item.id_tuk)}
+                                                className="font-medium text-amber-700 hover:underline dark:text-amber-500"
+                                            >
+                                                {item.nama}
+                                            </Link>
+                                        ) : (
+                                            <span className="font-medium">{item.nama}</span>
+                                        )}
                                         <p className="text-muted-foreground mt-0.5 text-xs">{item.alamat}</p>
                                     </TableCell>
 
@@ -223,27 +235,35 @@ export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
                                         </span>
                                     </TableCell>
 
-                                    <TableCell className="pr-5">
-                                        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                                            <Button variant="ghost" size="icon" className="size-8" asChild title="Ubah TUK">
-                                                <Link href={route('master.tuk.edit', item.id_tuk)}>
-                                                    <Pencil />
-                                                    <span className="sr-only">Ubah {item.nama}</span>
-                                                </Link>
-                                            </Button>
+                                    {isAdmin && (
+                                        <TableCell className="pr-5">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/50"
+                                                    asChild
+                                                    title="Ubah TUK"
+                                                >
+                                                    <Link href={route('master.tuk.edit', item.id_tuk)}>
+                                                        <Pencil />
+                                                        <span className="sr-only">Ubah {item.nama}</span>
+                                                    </Link>
+                                                </Button>
 
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                title="Hapus TUK"
-                                                className="size-8 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50"
-                                                onClick={() => setTarget(item)}
-                                            >
-                                                <Trash2 />
-                                                <span className="sr-only">Hapus {item.nama}</span>
-                                            </Button>
-                                        </div>
-                                    </TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Hapus TUK"
+                                                    className="size-8 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50"
+                                                    onClick={() => setTarget(item)}
+                                                >
+                                                    <Trash2 />
+                                                    <span className="sr-only">Hapus {item.nama}</span>
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -261,26 +281,19 @@ export default function TukIndex({ tuk, filters, options, stats }: IndexProps) {
                 </div>
             </div>
 
-            <Dialog open={target !== null} onOpenChange={(open) => !open && setTarget(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Hapus lokasi TUK?</DialogTitle>
-                        <DialogDescription>
-                            Lokasi <span className="font-medium">{target?.nama}</span> ({target?.kode}) akan dihapus permanen dari master data.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <DialogFooter className="gap-2">
-                        <Button variant="outline" onClick={() => setTarget(null)}>
-                            Batal
-                        </Button>
-
-                        <Button variant="destructive" onClick={destroy} disabled={deleting}>
-                            Hapus
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmDeleteDialog
+                open={target !== null}
+                onOpenChange={(open) => !open && setTarget(null)}
+                processing={deleting}
+                onConfirm={destroy}
+                title="Hapus lokasi TUK?"
+                description={
+                    <>
+                        Lokasi <span className="text-foreground font-medium">{target?.nama}</span> ({target?.kode}) akan dihapus dari master data.
+                    </>
+                }
+                note="Data dihapus secara soft delete: tidak tampil lagi di sistem, tetapi tetap tersimpan dan dapat dipulihkan oleh pengelola database."
+            />
         </AppLayout>
     );
 }

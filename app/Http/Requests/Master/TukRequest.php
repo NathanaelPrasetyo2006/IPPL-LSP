@@ -24,7 +24,8 @@ class TukRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('tuk', 'kode')->ignore($tuk?->id_tuk, 'id_tuk'),
+                // Kode milik TUK yang sudah dihapus boleh dipakai lagi.
+                Rule::unique('tuk', 'kode')->whereNull('deleted_at')->ignore($tuk?->id_tuk, 'id_tuk'),
             ],
             'nama' => ['required', 'string', 'max:255'],
             'jenis' => ['required', Rule::in(array_keys(Tuk::JENIS))],
