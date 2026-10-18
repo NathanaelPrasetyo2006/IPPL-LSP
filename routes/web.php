@@ -3,8 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// Tidak ada halaman landing: tamu langsung ke portal login, pengguna yang sudah masuk ke dashboard.
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return redirect()->route(auth()->check() ? 'dashboard' : 'login');
 })->name('home');
 
 Route::middleware(['auth'])->group(function () {
