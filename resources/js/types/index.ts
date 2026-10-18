@@ -29,6 +29,7 @@ export interface SharedData {
     quote: { message: string; author: string };
     auth: Auth;
     flash: Flash;
+    notifikasi: NotifikasiShared | null;
     [key: string]: unknown;
 }
 
@@ -152,4 +153,87 @@ export interface KartuAsesor {
     instansi: string | null;
     masa_berlaku_sertifikat: string | null;
     kedaluwarsa: boolean;
+}
+
+export interface NotifikasiItem {
+    id: string;
+    judul: string;
+    pesan: string;
+    tipe: 'info' | 'sukses' | 'gagal';
+    dibaca: boolean;
+    waktu: string | null;
+}
+
+export interface NotifikasiShared {
+    belum_dibaca: number;
+    terbaru: NotifikasiItem[];
+}
+
+export type StatusPeriode = 'dibuka' | 'dijadwalkan' | 'ditutup';
+
+export interface SkemaOption {
+    id_skema: number;
+    judul: string;
+    nomor: string;
+    unit_kompetensi_count?: number;
+}
+
+export interface PeriodePendaftaran {
+    id_periode: number;
+    nama: string;
+    tanggal_buka: string;
+    tanggal_tutup: string;
+    kuota: number | null;
+    kuota_terpakai: number;
+    aktif: boolean;
+    status: StatusPeriode;
+    skema: SkemaOption[];
+    jumlah_permohonan: number;
+    permohonan_menunggu: number;
+}
+
+export type StatusPermohonan = 'diajukan' | 'diterima' | 'ditolak';
+
+export interface PermohonanRingkas {
+    id_permohonan: number;
+    nomor: string;
+    status: StatusPermohonan;
+    status_label: string;
+    skema: { id_skema: number; judul: string; nomor: string } | null;
+    periode: { id_periode: number; nama: string } | null;
+    nama_asesi: string | null;
+    kode_asesi: string | null;
+    diajukan_pada: string | null;
+    diverifikasi_pada: string | null;
+}
+
+export interface DokumenPermohonan {
+    jenis: string;
+    label: string;
+    wajib: boolean;
+    identitas: boolean;
+    ada: boolean;
+    nama_file: string | null;
+    ukuran: number | null;
+    url: string | null;
+}
+
+export interface PermohonanDetail extends Omit<PermohonanRingkas, 'skema'> {
+    tujuan_asesmen: string;
+    catatan_verifikasi: string | null;
+    cek_dokumen: Record<string, boolean>;
+    verifikator: string | null;
+    skema: { id_skema: number; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
+    pemohon: Record<string, string | null> & { nama_lengkap: string; kode_asesi: string };
+    dokumen: DokumenPermohonan[];
+}
+
+/** Definisi jenis dokumen APL-01 dari server (JenisDokumen::definisi). */
+export interface JenisDokumenDef {
+    jenis: string;
+    label: string;
+    wajib: boolean;
+    identitas: boolean;
+    accept: string;
+    maks_mb: number;
 }

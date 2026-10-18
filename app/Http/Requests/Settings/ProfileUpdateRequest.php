@@ -16,16 +16,15 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Tabel users tidak punya kolom name; nama tersimpan di data asesor/asesi.
         return [
-            'name' => ['required', 'string', 'max:255'],
-
             'email' => [
                 'required',
                 'string',
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                Rule::unique(User::class)->ignore($this->user()->id_user, 'id_user'),
             ],
         ];
     }

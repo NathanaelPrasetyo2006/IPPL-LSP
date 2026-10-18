@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData, type UserRole } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Database, IdCard, LayoutGrid } from 'lucide-react';
+import { ClipboardCheck, Database, FileSignature, IdCard, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -33,6 +33,28 @@ const mainNavItems: NavItem[] = [
                 roles: ['admin'],
             },
         ],
+    },
+    {
+        title: 'Pendaftaran',
+        url: '/pendaftaran',
+        icon: ClipboardCheck,
+        roles: ['admin'],
+        items: [
+            {
+                title: 'Periode Pendaftaran',
+                url: '/pendaftaran/periode',
+            },
+            {
+                title: 'Verifikasi APL-01',
+                url: '/pendaftaran/verifikasi',
+            },
+        ],
+    },
+    {
+        title: 'Pendaftaran Sertifikasi',
+        url: '/sertifikasi',
+        icon: FileSignature,
+        roles: ['asesi'],
     },
     {
         title: 'Profil Asesor',

@@ -7,22 +7,28 @@ import RoleBadge from '@/components/auth/role-badge';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
-interface RegisterForm {
+type RegisterForm = {
+    nama_lengkap: string;
+    no_telp: string;
     email: string;
     password: string;
     password_confirmation: string;
-    [key: string]: string;
-}
+    persetujuan: boolean;
+};
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm<RegisterForm>({
+        nama_lengkap: '',
+        no_telp: '',
         email: '',
         password: '',
         password_confirmation: '',
+        persetujuan: false,
     });
 
     const [visible, setVisible] = useState(false);
@@ -40,7 +46,7 @@ export default function Register() {
     return (
         <AuthLayout
             className="max-w-md"
-            title="Buat Akun Asesi"
+            title="Registrasi Calon Asesi"
             description="Daftarkan diri Anda untuk mengikuti uji kompetensi di LSP."
             header={<RoleBadge role="asesi" caption="Registrasi" />}
         >
@@ -48,14 +54,50 @@ export default function Register() {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
+                    <Label htmlFor="nama_lengkap">Nama lengkap</Label>
+
+                    <Input
+                        id="nama_lengkap"
+                        required
+                        autoFocus
+                        autoComplete="name"
+                        value={data.nama_lengkap}
+                        onChange={(e) => setData('nama_lengkap', e.target.value)}
+                        disabled={processing}
+                        placeholder="Sesuai KTP"
+                    />
+
+                    <p className="text-muted-foreground text-xs">
+                        Nama ini dipakai untuk kode & folder dokumen asesi, serta dicetak pada sertifikat.
+                    </p>
+
+                    <InputError message={errors.nama_lengkap} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="no_telp">No. HP / WhatsApp</Label>
+
+                    <Input
+                        id="no_telp"
+                        type="tel"
+                        required
+                        autoComplete="tel"
+                        value={data.no_telp}
+                        onChange={(e) => setData('no_telp', e.target.value)}
+                        disabled={processing}
+                        placeholder="Contoh: 081234567890"
+                    />
+
+                    <InputError message={errors.no_telp} />
+                </div>
+
+                <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
 
                     <Input
                         id="email"
                         type="email"
                         required
-                        autoFocus
-                        tabIndex={1}
                         autoComplete="email"
                         value={data.email}
                         onChange={(e) => setData('email', e.target.value.toLowerCase())}
@@ -63,7 +105,9 @@ export default function Register() {
                         placeholder="nama@email.com"
                     />
 
-                    <p className="text-muted-foreground text-xs">Gunakan email aktif. Informasi jadwal & hasil asesmen dikirim ke email ini.</p>
+                    <p className="text-muted-foreground text-xs">
+                        Gunakan email aktif. Link verifikasi, hasil verifikasi berkas, dan jadwal asesmen dikirim ke email ini.
+                    </p>
 
                     <InputError message={errors.email} />
                 </div>
@@ -76,7 +120,6 @@ export default function Register() {
                             id="password"
                             type={visible ? 'text' : 'password'}
                             required
-                            tabIndex={2}
                             autoComplete="new-password"
                             value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
@@ -106,7 +149,6 @@ export default function Register() {
                         id="password_confirmation"
                         type={visible ? 'text' : 'password'}
                         required
-                        tabIndex={3}
                         autoComplete="new-password"
                         value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)}
@@ -122,22 +164,39 @@ export default function Register() {
                     <Requirement met={matches} label="Konfirmasi password cocok" />
                 </ul>
 
+                <div className="grid gap-2">
+                    <div className="flex items-start gap-3">
+                        <Checkbox
+                            id="persetujuan"
+                            checked={data.persetujuan}
+                            onCheckedChange={(checked) => setData('persetujuan', checked === true)}
+                            disabled={processing}
+                            className="mt-0.5"
+                        />
+                        <Label htmlFor="persetujuan" className="text-sm leading-snug font-normal">
+                            Saya menyetujui data pribadi saya digunakan oleh LSP untuk keperluan proses sertifikasi kompetensi.
+                        </Label>
+                    </div>
+
+                    <InputError message={errors.persetujuan} />
+                </div>
+
                 <div className="flex items-start gap-3 rounded-lg border border-sky-500/30 bg-sky-50 p-3 dark:bg-sky-950/40">
                     <Info className="mt-0.5 size-4 shrink-0 text-sky-600 dark:text-sky-400" />
                     <p className="text-xs text-sky-800 dark:text-sky-300">
-                        Setelah akun dibuat, Anda akan melengkapi data diri dan dokumen persyaratan (APL-01) dari dashboard.
+                        Setelah akun dibuat, verifikasi email Anda lalu isi formulir permohonan sertifikasi (APL-01) beserta dokumen persyaratan.
                     </p>
                 </div>
 
-                <Button type="submit" className="w-full" tabIndex={4} disabled={processing || !longEnough || !matches}>
+                <Button type="submit" className="w-full" disabled={processing || !longEnough || !matches || !data.persetujuan}>
                     {processing && <LoaderCircle className="size-4 animate-spin" />}
-                    Buat akun asesi
+                    Daftar sebagai calon asesi
                 </Button>
             </form>
 
             <p className="text-muted-foreground mt-6 border-t pt-4 text-center text-sm">
                 Sudah punya akun?{' '}
-                <TextLink href={route('login.role', 'asesi')} className="font-medium" tabIndex={5}>
+                <TextLink href={route('login.role', 'asesi')} className="font-medium">
                     Masuk di sini
                 </TextLink>
             </p>

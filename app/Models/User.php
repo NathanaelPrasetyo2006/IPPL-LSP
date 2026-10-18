@@ -4,13 +4,19 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifikasiEmailAsesi;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+/**
+ * Verifikasi email hanya diwajibkan (middleware `verified`) pada menu asesi;
+ * akun asesor punya alur verifikasi sendiri dan akun admin dibuat langsung.
+ */
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -55,6 +61,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Profil (data diri) milik akun asesi.
+     *
+     * @return HasOne<DataDiri, $this>
+     */
+    public function dataDiri(): HasOne
+    {
+        return $this->hasOne(DataDiri::class, 'id_user', 'id_user');
+    }
+
+    /**
      * Pemilik akun sudah membuktikan email-nya (lewat link verifikasi atau reset password).
      */
     public function isVerified(): bool
@@ -70,6 +86,14 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /**
+     * Kirim email verifikasi berbahasa Indonesia.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifikasiEmailAsesi);
     }
 
     /**

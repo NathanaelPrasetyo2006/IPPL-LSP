@@ -45,6 +45,18 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Closure supaya query hanya jalan bila ada pengguna login dan props ini diminta.
+            'notifikasi' => fn () => $request->user() ? [
+                'belum_dibaca' => $request->user()->unreadNotifications()->count(),
+                'terbaru' => $request->user()->notifications()->latest()->limit(8)->get()->map(fn ($notifikasi) => [
+                    'id' => $notifikasi->id,
+                    'judul' => $notifikasi->data['judul'] ?? 'Notifikasi',
+                    'pesan' => $notifikasi->data['pesan'] ?? '',
+                    'tipe' => $notifikasi->data['tipe'] ?? 'info',
+                    'dibaca' => $notifikasi->read_at !== null,
+                    'waktu' => $notifikasi->created_at?->locale('id')->diffForHumans(),
+                ]),
+            ] : null,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

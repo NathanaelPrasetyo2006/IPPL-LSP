@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\DataDiri;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -17,7 +19,7 @@ use Inertia\Response;
 class RegisteredUserController extends Controller
 {
     /**
-     * Halaman registrasi akun asesi.
+     * Halaman registrasi akun calon asesi.
      */
     public function create(): Response
     {
@@ -25,33 +27,58 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Buat akun asesi baru. Data diri (APL-01) dilengkapi setelah login.
+     * Buat akun calon asesi beserta profil awalnya, lalu kirim link verifikasi email.
+     * Data diri lengkap (APL-01) diisi setelah email terverifikasi.
      *
      * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'nama_lengkap' => is_string($request->nama_lengkap) ? trim($request->nama_lengkap) : $request->nama_lengkap,
+            'no_telp' => is_string($request->no_telp) ? preg_replace('/[\s\-()]/', '', $request->no_telp) : $request->no_telp,
+        ]);
+
         $validated = $request->validate([
+            'nama_lengkap' => ['required', 'string', 'max:255'],
+            'no_telp' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            'persetujuan' => ['accepted'],
         ], [
             'email.unique' => 'Email ini sudah terdaftar. Silakan masuk atau gunakan fitur lupa password.',
             'email.lowercase' => 'Email harus ditulis dengan huruf kecil.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'no_telp.regex' => 'No. HP hanya boleh berisi angka (boleh diawali +), 9–15 digit.',
+            'persetujuan.accepted' => 'Anda harus menyetujui penggunaan data untuk proses sertifikasi.',
         ], [
+            'nama_lengkap' => 'nama lengkap',
+            'no_telp' => 'no. HP',
             'password' => 'password',
         ]);
 
-        $user = User::create([
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'role' => UserRole::Asesi,
-        ]);
+        $user = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'role' => UserRole::Asesi,
+            ]);
 
+            // Kode asesi dibuat otomatis oleh model saat data diri tersimpan.
+            DataDiri::create([
+                'id_user' => $user->id_user,
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'no_telp' => $validated['no_telp'],
+            ]);
+
+            return $user;
+        });
+
+        // Listener bawaan Laravel mengirim email verifikasi untuk event ini.
         event(new Registered($user));
 
         Auth::login($user);
 
-        return to_route('dashboard')->with('success', 'Akun asesi berhasil dibuat. Selamat datang di Sistem Informasi LSP.');
+        return to_route('verification.notice');
     }
 }

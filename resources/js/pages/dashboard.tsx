@@ -5,7 +5,19 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData, type UserRole } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BadgeCheck, ClipboardList, IdCard, type LucideIcon, MapPin, UserCheck, UserPen } from 'lucide-react';
+import {
+    ArrowRight,
+    BadgeCheck,
+    CalendarRange,
+    ClipboardCheck,
+    ClipboardList,
+    FileSignature,
+    IdCard,
+    type LucideIcon,
+    MapPin,
+    UserCheck,
+    UserPen,
+} from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -25,6 +37,20 @@ interface Shortcut {
 // Pintasan di dashboard mengikuti hak akses tiap peran.
 const SHORTCUTS: Record<UserRole, Shortcut[]> = {
     admin: [
+        {
+            title: 'Verifikasi APL-01',
+            description: 'Periksa berkas dan tetapkan status permohonan.',
+            href: '/pendaftaran/verifikasi',
+            icon: ClipboardCheck,
+            tone: 'bg-amber-500',
+        },
+        {
+            title: 'Periode Pendaftaran',
+            description: 'Buka gelombang pendaftaran dan pilih skemanya.',
+            href: '/pendaftaran/periode',
+            icon: CalendarRange,
+            tone: 'bg-teal-600',
+        },
         {
             title: 'Skema Sertifikasi',
             description: 'Kelola skema dan unit kompetensinya.',
@@ -77,7 +103,15 @@ const SHORTCUTS: Record<UserRole, Shortcut[]> = {
             tone: 'bg-violet-500',
         },
     ],
-    asesi: [],
+    asesi: [
+        {
+            title: 'Pendaftaran Sertifikasi',
+            description: 'Pilih skema pada periode yang dibuka dan isi APL-01.',
+            href: '/sertifikasi',
+            icon: FileSignature,
+            tone: 'bg-teal-600',
+        },
+    ],
 };
 
 export default function Dashboard() {

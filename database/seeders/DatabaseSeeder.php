@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(NegaraSeeder::class);
 
         User::factory()->admin()->create([
             'email' => 'admin@example.com',
