@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PermohonanRingkas, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox } from 'lucide-react';
+import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox, MapPinOff } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pendaftaran Sertifikasi', href: '/sertifikasi' }];
 
@@ -164,9 +164,17 @@ export default function SertifikasiIndex({ kodeAsesi, periode, permohonan }: Ind
                                         <div className="min-w-0 flex-1">
                                             <p className="font-medium">{item.skema?.judul}</p>
                                             <p className="text-muted-foreground text-xs">
-                                                <span className="font-mono">{item.nomor}</span> · {item.periode?.nama} · diajukan {item.diajukan_pada}
+                                                <span className="font-mono">{item.nomor}</span> · {item.periode?.nama}
+                                                {item.lokasi && ` · ${item.lokasi.nama}`} · diajukan {item.diajukan_pada}
                                             </p>
                                         </div>
+
+                                        {item.perlu_pilih_lokasi && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-amber-600/20 ring-inset dark:bg-amber-950/50 dark:text-amber-400">
+                                                <MapPinOff className="size-3" />
+                                                Pilih ulang lokasi
+                                            </span>
+                                        )}
 
                                         <StatusPermohonanBadge status={item.status} />
                                     </Link>

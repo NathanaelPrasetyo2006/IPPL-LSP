@@ -1,6 +1,6 @@
 import PeriodeForm, { type PeriodeFormData } from '@/components/pendaftaran/periode-form';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type SkemaOption } from '@/types';
+import { type BreadcrumbItem, type SkemaOption, type Tuk } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -10,7 +10,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Buka periode', href: '/pendaftaran/periode/create' },
 ];
 
-export default function CreatePeriode({ skemaOptions }: { skemaOptions: SkemaOption[] }) {
+export default function CreatePeriode({ skemaOptions, tukOptions }: { skemaOptions: SkemaOption[]; tukOptions: Tuk[] }) {
     const { data, setData, post, errors, processing } = useForm<PeriodeFormData>({
         nama: '',
         tanggal_buka: '',
@@ -19,6 +19,7 @@ export default function CreatePeriode({ skemaOptions }: { skemaOptions: SkemaOpt
         keterangan: '',
         aktif: true,
         skema: [],
+        lokasi: [{ id_tuk: '', skema: [] }],
     });
 
     const submit: FormEventHandler = (e) => {
@@ -35,7 +36,7 @@ export default function CreatePeriode({ skemaOptions }: { skemaOptions: SkemaOpt
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Buka Periode Pendaftaran</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Tentukan rentang tanggal pendaftaran dan skema yang bisa dipilih calon asesi.
+                        Tentukan rentang tanggal pendaftaran, skema yang bisa dipilih calon asesi, dan lokasi uji tiap skema.
                     </p>
                 </div>
 
@@ -45,6 +46,7 @@ export default function CreatePeriode({ skemaOptions }: { skemaOptions: SkemaOpt
                     errors={errors}
                     processing={processing}
                     skemaOptions={skemaOptions}
+                    tukOptions={tukOptions}
                     onSubmit={submit}
                     submitLabel="Simpan periode"
                 />

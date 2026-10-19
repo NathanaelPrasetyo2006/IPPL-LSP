@@ -10,12 +10,13 @@ import {
 import { cn } from '@/lib/utils';
 import { type NotifikasiItem, type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { Bell, CheckCheck, CircleCheck, CircleX, Info } from 'lucide-react';
+import { Bell, CheckCheck, CircleCheck, CircleX, Info, TriangleAlert } from 'lucide-react';
 
 const IKON: Record<NotifikasiItem['tipe'], { icon: typeof Info; className: string }> = {
     info: { icon: Info, className: 'text-sky-600 bg-sky-50 dark:bg-sky-950/50 dark:text-sky-400' },
     sukses: { icon: CircleCheck, className: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400' },
     gagal: { icon: CircleX, className: 'text-red-600 bg-red-50 dark:bg-red-950/50 dark:text-red-400' },
+    peringatan: { icon: TriangleAlert, className: 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400' },
 };
 
 /**

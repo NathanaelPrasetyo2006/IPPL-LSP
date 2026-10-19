@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\JenisDokumen;
 use App\Models\DataDiri;
 use App\Models\PermohonanSertifikasi;
+use App\Models\RiwayatLokasiPermohonan;
 
 /**
  * Bentuk data permohonan APL-01 untuk halaman asesi maupun verifikator.
@@ -25,6 +26,8 @@ class PermohonanPresenter
             'status_label' => $p->status->label(),
             'skema' => $p->skema?->only(['id_skema', 'judul', 'nomor']),
             'periode' => $p->periode?->only(['id_periode', 'nama']),
+            'lokasi' => $p->tuk?->only(['id_tuk', 'nama', 'alamat']),
+            'perlu_pilih_lokasi' => $p->perluPilihLokasi(),
             'nama_asesi' => $p->dataDiri?->nama_lengkap,
             'kode_asesi' => $p->dataDiri?->kode_asesi,
             'diajukan_pada' => $p->created_at?->locale('id')->translatedFormat('d M Y H:i'),
@@ -39,7 +42,18 @@ class PermohonanPresenter
      */
     public static function detail(PermohonanSertifikasi $p): array
     {
-        $p->loadMissing(['dataDiri.negara', 'dataDiri.user:id_user,email', 'skema.unitKompetensi', 'periode', 'dokumen', 'verifikator']);
+        $p->loadMissing([
+            'dataDiri.negara',
+            'dataDiri.user:id_user,email',
+            'skema.unitKompetensi',
+            'periode',
+            'tuk',
+            'dokumen',
+            'verifikator',
+            'riwayatLokasi.tukLama',
+            'riwayatLokasi.tukBaru',
+            'riwayatLokasi.user',
+        ]);
 
         $d = $p->dataDiri;
 
@@ -76,6 +90,16 @@ class PermohonanPresenter
                 'email_kantor' => $d->email_kantor,
             ],
             'dokumen' => self::dokumen($p),
+            'riwayat_lokasi' => $p->riwayatLokasi
+                ->map(fn (RiwayatLokasiPermohonan $r) => [
+                    'id_riwayat' => $r->id_riwayat,
+                    'waktu' => $r->created_at?->locale('id')->translatedFormat('d M Y H:i'),
+                    'lokasi_lama' => $r->tukLama?->nama,
+                    'lokasi_baru' => $r->tukBaru?->nama,
+                    'keterangan' => $r->keterangan,
+                    'oleh' => $r->user?->role->label(),
+                ])
+                ->values(),
         ];
     }
 

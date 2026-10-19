@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { type DokumenPermohonan, type PermohonanDetail } from '@/types';
-import { CircleCheck, CircleX, ExternalLink, FileText, FileWarning } from 'lucide-react';
+import { CircleCheck, CircleX, ExternalLink, FileText, FileWarning, History } from 'lucide-react';
 
 export function Panel({
     title,
@@ -72,8 +72,46 @@ export function DataSertifikasi({ permohonan }: { permohonan: PermohonanDetail }
                 <Baris label="Skema" value={permohonan.skema.judul} />
                 <Baris label="Nomor skema" value={permohonan.skema.nomor} />
                 <Baris label="Periode" value={permohonan.periode?.nama} />
+                <Baris
+                    label="Lokasi uji"
+                    value={
+                        permohonan.lokasi ? (
+                            <>
+                                {permohonan.lokasi.nama}
+                                <span className="text-muted-foreground block text-xs font-normal whitespace-pre-line">
+                                    {permohonan.lokasi.alamat}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="font-normal text-amber-700 dark:text-amber-500">Belum dipilih</span>
+                        )
+                    }
+                />
                 <Baris label="Tujuan asesmen" value={permohonan.tujuan_asesmen} />
             </dl>
+
+            {permohonan.riwayat_lokasi.length > 0 && (
+                <>
+                    <h3 className="text-muted-foreground mt-6 mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                        <History className="size-3.5" />
+                        Riwayat lokasi uji
+                    </h3>
+
+                    <ol className="divide-y rounded-lg border">
+                        {permohonan.riwayat_lokasi.map((riwayat) => (
+                            <li key={riwayat.id_riwayat} className="px-3 py-2 text-sm">
+                                <p className="font-medium">
+                                    {riwayat.lokasi_lama ?? '–'} → {riwayat.lokasi_baru ?? 'Belum dipilih'}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                    {riwayat.keterangan} · {riwayat.waktu}
+                                    {riwayat.oleh && ` · oleh ${riwayat.oleh}`}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                </>
+            )}
 
             <h3 className="text-muted-foreground mt-6 mb-3 text-xs font-semibold tracking-wide uppercase">
                 Daftar unit kompetensi ({permohonan.skema.unit_kompetensi.length})

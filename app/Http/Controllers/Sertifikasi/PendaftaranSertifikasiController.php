@@ -13,6 +13,7 @@ use App\Models\Negara;
 use App\Models\PeriodePendaftaran;
 use App\Models\PermohonanSertifikasi;
 use App\Models\SkemaSertifikasi;
+use App\Models\Tuk;
 use App\Models\User;
 use App\Notifications\PermohonanApl01Masuk;
 use App\Support\PenyimpananDokumen;
@@ -22,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -40,7 +42,7 @@ class PendaftaranSertifikasiController extends Controller
         $dataDiri = $request->user()->dataDiri;
 
         $permohonan = $dataDiri
-            ? $dataDiri->permohonan()->with(['skema:id_skema,judul,nomor', 'periode:id_periode,nama'])->latest()->get()
+            ? $dataDiri->permohonan()->with(['skema:id_skema,judul,nomor', 'periode:id_periode,nama', 'tuk:id_tuk,nama,alamat'])->latest()->get()
             : collect();
 
         // Skema yang sedang diproses/diterima tidak bisa didaftarkan lagi pada periode yang sama.
@@ -107,6 +109,7 @@ class PendaftaranSertifikasiController extends Controller
                 'nomor' => $skema->nomor,
                 'unit_kompetensi' => $skema->unitKompetensi()->orderBy('urutan')->orderBy('kode')->get(['id_unit_kompetensi', 'kode', 'judul']),
             ],
+            'lokasi' => $this->lokasiOptions($periode, $skema->id_skema),
             'kodeAsesi' => $dataDiri?->kode_asesi,
             'email' => $request->user()->email,
             'profil' => $profil,
@@ -171,6 +174,7 @@ class PendaftaranSertifikasiController extends Controller
                     'status' => StatusPermohonan::Diajukan,
                 ]);
 
+                $permohonan->gantiLokasi((int) $data['id_tuk'], 'Dipilih saat pendaftaran.', $user);
                 $permohonan->setRelation('dataDiri', $dataDiri);
 
                 // Bukti persyaratan dasar disimpan di folder milik permohonan ini.
@@ -219,10 +223,32 @@ class PendaftaranSertifikasiController extends Controller
 
         return Inertia::render('sertifikasi/show', [
             'permohonan' => $detail,
+            'lokasiTersedia' => $permohonan->perluPilihLokasi() ? $this->lokasiOptions($permohonan->periode, $permohonan->id_skema) : [],
             // Asesi yang ditolak bisa langsung mendaftar ulang bila periode masih dibuka.
             'bisaDaftarUlang' => $permohonan->status === StatusPermohonan::Ditolak
                 && $this->alasanTidakBisaDaftar($request->user(), $permohonan->periode, $permohonan->skema) === null,
         ]);
+    }
+
+    /**
+     * Asesi memilih ulang lokasi uji setelah lokasi sebelumnya dihapus admin.
+     */
+    public function pilihLokasi(Request $request, PermohonanSertifikasi $permohonan): RedirectResponse
+    {
+        abort_unless($permohonan->dataDiri?->id_user === $request->user()->id_user, 404);
+
+        if (! $permohonan->perluPilihLokasi()) {
+            return back()->with('error', 'Lokasi uji permohonan ini tidak perlu dipilih ulang.');
+        }
+
+        $data = $request->validate(
+            ['id_tuk' => ['required', 'integer', Rule::in($permohonan->periode->lokasiSkema($permohonan->id_skema)->pluck('id_tuk')->all())]],
+            ['id_tuk.required' => 'Pilih lokasi uji.', 'id_tuk.in' => 'Lokasi uji yang dipilih tidak tersedia untuk skema ini.'],
+        );
+
+        $permohonan->gantiLokasi((int) $data['id_tuk'], 'Dipilih ulang oleh asesi.', $request->user());
+
+        return back()->with('success', 'Lokasi uji berhasil disimpan.');
     }
 
     /**
@@ -236,6 +262,17 @@ class PendaftaranSertifikasiController extends Controller
         abort_unless($path, 404);
 
         return PenyimpananDokumen::tampilkan($path, $jenis->value.'.'.pathinfo($path, PATHINFO_EXTENSION));
+    }
+
+    /**
+     * @return list<array{id_tuk: int, nama: string, alamat: string}>
+     */
+    private function lokasiOptions(PeriodePendaftaran $periode, int $idSkema): array
+    {
+        return $periode->lokasiSkema($idSkema)
+            ->map(fn (Tuk $tuk) => $tuk->only(['id_tuk', 'nama', 'alamat']))
+            ->values()
+            ->all();
     }
 
     /**

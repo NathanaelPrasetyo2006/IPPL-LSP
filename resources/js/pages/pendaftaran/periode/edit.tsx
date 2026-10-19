@@ -1,6 +1,6 @@
-import PeriodeForm, { type PeriodeFormData } from '@/components/pendaftaran/periode-form';
+import PeriodeForm, { type LokasiFormData, type PeriodeFormData } from '@/components/pendaftaran/periode-form';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type SkemaOption } from '@/types';
+import { type BreadcrumbItem, type SkemaOption, type Tuk } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -20,12 +20,15 @@ interface EditPeriodeProps {
         keterangan: string | null;
         aktif: boolean;
         skema: number[];
+        lokasi: LokasiFormData[];
     };
     skemaTerpakai: number[];
+    pendaftarLokasi: Record<string, number>;
     skemaOptions: SkemaOption[];
+    tukOptions: Tuk[];
 }
 
-export default function EditPeriode({ periode, skemaTerpakai, skemaOptions }: EditPeriodeProps) {
+export default function EditPeriode({ periode, skemaTerpakai, pendaftarLokasi, skemaOptions, tukOptions }: EditPeriodeProps) {
     const { data, setData, put, errors, processing } = useForm<PeriodeFormData>({
         nama: periode.nama,
         tanggal_buka: periode.tanggal_buka,
@@ -34,6 +37,8 @@ export default function EditPeriode({ periode, skemaTerpakai, skemaOptions }: Ed
         keterangan: periode.keterangan ?? '',
         aktif: periode.aktif,
         skema: periode.skema,
+        // Periode lama yang belum punya lokasi langsung diberi satu baris kosong.
+        lokasi: periode.lokasi.length > 0 ? periode.lokasi : [{ id_tuk: '', skema: [] }],
     });
 
     const submit: FormEventHandler = (e) => {
@@ -50,7 +55,7 @@ export default function EditPeriode({ periode, skemaTerpakai, skemaOptions }: Ed
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Ubah Periode Pendaftaran</h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Perbarui jadwal dan skema untuk <span className="font-medium">{periode.nama}</span>.
+                        Perbarui jadwal, skema, dan lokasi untuk <span className="font-medium">{periode.nama}</span>.
                     </p>
                 </div>
 
@@ -60,7 +65,9 @@ export default function EditPeriode({ periode, skemaTerpakai, skemaOptions }: Ed
                     errors={errors}
                     processing={processing}
                     skemaOptions={skemaOptions}
+                    tukOptions={tukOptions}
                     skemaTerkunci={skemaTerpakai}
+                    pendaftarLokasi={pendaftarLokasi}
                     onSubmit={submit}
                     submitLabel="Simpan perubahan"
                 />

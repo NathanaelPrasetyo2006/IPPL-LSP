@@ -5,6 +5,8 @@ namespace App\Http\Requests\Sertifikasi;
 use App\Enums\JenisDokumen;
 use App\Enums\TujuanAsesmen;
 use App\Models\DataDiri;
+use App\Models\PeriodePendaftaran;
+use App\Models\SkemaSertifikasi;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -53,6 +55,12 @@ class PermohonanApl01Request extends FormRequest
         /** @var DataDiri|null $dataDiri */
         $dataDiri = $this->user()?->dataDiri;
 
+        /** @var PeriodePendaftaran $periode */
+        $periode = $this->route('periode');
+
+        /** @var SkemaSertifikasi $skema */
+        $skema = $this->route('skema');
+
         $rules = [
             // Bagian 1a: data pribadi.
             'nama_lengkap' => ['required', 'string', 'max:255'],
@@ -84,6 +92,7 @@ class PermohonanApl01Request extends FormRequest
             // Bagian 2: data sertifikasi.
             'tujuan_asesmen' => ['required', Rule::enum(TujuanAsesmen::class)],
             'tujuan_asesmen_lainnya' => ['nullable', 'required_if:tujuan_asesmen,lainnya', 'string', 'max:255'],
+            'id_tuk' => ['required', 'integer', Rule::in($periode->lokasiSkema($skema->id_skema)->pluck('id_tuk')->all())],
 
             'pernyataan' => ['accepted'],
             'dokumen' => ['nullable', 'array'],
@@ -129,6 +138,7 @@ class PermohonanApl01Request extends FormRequest
             'email_kantor' => 'email kantor',
             'tujuan_asesmen' => 'tujuan asesmen',
             'tujuan_asesmen_lainnya' => 'keterangan tujuan asesmen',
+            'id_tuk' => 'lokasi uji',
         ];
 
         foreach (JenisDokumen::cases() as $jenis) {
@@ -150,6 +160,8 @@ class PermohonanApl01Request extends FormRequest
             'no_telp.regex' => 'No. HP hanya boleh berisi angka (boleh diawali +), 9–15 digit.',
             'telp_kantor.regex' => 'Telepon kantor hanya boleh berisi angka (boleh diawali +).',
             'tujuan_asesmen_lainnya.required_if' => 'Jelaskan tujuan asesmen lainnya.',
+            'id_tuk.required' => 'Pilih lokasi uji.',
+            'id_tuk.in' => 'Lokasi uji yang dipilih tidak tersedia untuk skema ini.',
             'pernyataan.accepted' => 'Anda harus menyatakan bahwa data yang diisi benar.',
             'dokumen.*.required' => ':attribute wajib diunggah.',
             'dokumen.*.mimes' => ':attribute harus berformat :values.',

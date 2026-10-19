@@ -6,7 +6,9 @@ use App\Models\Negara;
 use App\Models\PeriodePendaftaran;
 use App\Models\PermohonanSertifikasi;
 use App\Models\SkemaSertifikasi;
+use App\Models\Tuk;
 use App\Models\User;
+use App\Notifications\LokasiPermohonanPerluDipilihUlang;
 use App\Notifications\PermohonanApl01Masuk;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -23,6 +25,10 @@ beforeEach(function () {
     $this->skema = SkemaSertifikasi::factory()->create();
     $this->periode = PeriodePendaftaran::factory()->create();
     $this->periode->skema()->attach($this->skema->id_skema);
+
+    $this->tuk = Tuk::factory()->create(['nama' => 'TUK Surabaya']);
+    $this->tukLain = Tuk::factory()->create(['nama' => 'TUK Malang']);
+    $this->periode->simpanLokasi([['id_tuk' => $this->tuk->id_tuk, 'skema' => [$this->skema->id_skema]]]);
 
     $this->idIndonesia = Negara::create(['nama_negara' => 'Indonesia'])->id_negara;
 });
@@ -53,6 +59,7 @@ function dataApl01(array $override = []): array
         'nama_sekolah' => 'Institut Teknologi Kalimantan',
         'pekerjaan' => 'Karyawan swasta',
         'tujuan_asesmen' => 'sertifikasi',
+        'id_tuk' => test()->tuk->id_tuk,
         'pernyataan' => true,
         'dokumen' => [
             'ktp' => UploadedFile::fake()->create('ktp.jpg', 200, 'image/jpeg'),
@@ -168,4 +175,93 @@ test('documents and applications are only visible to their owner and admin', fun
     $this->actingAs($lain)->get("/sertifikasi/permohonan/{$permohonan->id_permohonan}")->assertNotFound();
     $this->actingAs($lain)->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ijazah")->assertForbidden();
     $this->actingAs(User::factory()->asesor()->create())->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ktp")->assertForbidden();
+});
+
+test('APL-01 form offers only the locations of the chosen scheme and stores the choice with history', function () {
+    $this->actingAs($this->user)
+        ->get(urlDaftar($this->periode, $this->skema))
+        ->assertInertia(fn ($page) => $page->has('lokasi', 1)->where('lokasi.0.nama', 'TUK Surabaya'));
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['id_tuk' => $this->tukLain->id_tuk]))
+        ->assertSessionHasErrors('id_tuk');
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01())
+        ->assertSessionHasNoErrors();
+
+    $permohonan = PermohonanSertifikasi::sole();
+
+    expect($permohonan->id_tuk)->toBe($this->tuk->id_tuk)
+        ->and($permohonan->riwayatLokasi)->toHaveCount(1)
+        ->and($permohonan->riwayatLokasi[0]->id_tuk_lama)->toBeNull()
+        ->and($permohonan->riwayatLokasi[0]->id_tuk_baru)->toBe($this->tuk->id_tuk)
+        ->and($permohonan->riwayatLokasi[0]->id_user)->toBe($this->user->id_user);
+});
+
+test('removing a location from a period asks its active applicants to choose again', function () {
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $aktif = PermohonanSertifikasi::sole();
+
+    $ditolak = PermohonanSertifikasi::factory()->create([
+        'id_periode' => $this->periode->id_periode,
+        'id_skema' => $this->skema->id_skema,
+        'id_tuk' => $this->tuk->id_tuk,
+        'status' => StatusPermohonan::Ditolak,
+    ]);
+
+    // Admin mengganti TUK Surabaya dengan TUK Malang.
+    $this->actingAs($this->admin)
+        ->put("/pendaftaran/periode/{$this->periode->id_periode}", [
+            'nama' => $this->periode->nama,
+            'tanggal_buka' => $this->periode->tanggal_buka->toDateString(),
+            'tanggal_tutup' => $this->periode->tanggal_tutup->toDateString(),
+            'aktif' => true,
+            'skema' => [$this->skema->id_skema],
+            'lokasi' => [['id_tuk' => $this->tukLain->id_tuk, 'skema' => [$this->skema->id_skema]]],
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('success', fn (string $pesan) => str_contains($pesan, '1 pendaftar'));
+
+    $aktif->refresh();
+
+    expect($aktif->id_tuk)->toBeNull()
+        ->and($aktif->perluPilihLokasi())->toBeTrue()
+        ->and($aktif->riwayatLokasi)->toHaveCount(2)
+        ->and($aktif->riwayatLokasi[1]->id_tuk_lama)->toBe($this->tuk->id_tuk)
+        ->and($aktif->riwayatLokasi[1]->id_user)->toBe($this->admin->id_user)
+        ->and($ditolak->fresh()->id_tuk)->toBe($this->tuk->id_tuk);
+
+    Notification::assertSentTo($this->user, LokasiPermohonanPerluDipilihUlang::class);
+});
+
+test('asesi chooses a new location only when needed and only from available ones', function () {
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $permohonan = PermohonanSertifikasi::sole();
+    $url = "/sertifikasi/permohonan/{$permohonan->id_permohonan}/lokasi";
+
+    // Lokasi masih ada, jadi belum perlu memilih ulang.
+    $this->actingAs($this->user)->put($url, ['id_tuk' => $this->tuk->id_tuk])->assertSessionHas('error');
+
+    $this->periode->simpanLokasi([['id_tuk' => $this->tukLain->id_tuk, 'skema' => [$this->skema->id_skema]]]);
+    $this->periode->kosongkanLokasiTidakTersedia($this->admin);
+
+    $this->actingAs($this->user)
+        ->get("/sertifikasi/permohonan/{$permohonan->id_permohonan}")
+        ->assertInertia(fn ($page) => $page
+            ->where('permohonan.perlu_pilih_lokasi', true)
+            ->has('lokasiTersedia', 1)
+            ->where('lokasiTersedia.0.nama', 'TUK Malang')
+            ->has('permohonan.riwayat_lokasi', 2));
+
+    $this->actingAs(User::factory()->create())->put($url, ['id_tuk' => $this->tukLain->id_tuk])->assertNotFound();
+    $this->actingAs($this->user)->put($url, ['id_tuk' => $this->tuk->id_tuk])->assertSessionHasErrors('id_tuk');
+
+    $this->actingAs($this->user)->put($url, ['id_tuk' => $this->tukLain->id_tuk])->assertSessionHas('success');
+
+    $permohonan->refresh();
+
+    expect($permohonan->id_tuk)->toBe($this->tukLain->id_tuk)
+        ->and($permohonan->riwayatLokasi)->toHaveCount(3)
+        ->and($permohonan->riwayatLokasi[2]->keterangan)->toBe('Dipilih ulang oleh asesi.');
 });

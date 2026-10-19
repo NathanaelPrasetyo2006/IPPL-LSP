@@ -31,6 +31,7 @@ class PermohonanSertifikasi extends Model
         'id_data_diri',
         'id_periode',
         'id_skema',
+        'id_tuk',
         'tujuan_asesmen',
         'tujuan_asesmen_lainnya',
         'status',
@@ -74,6 +75,47 @@ class PermohonanSertifikasi extends Model
     public function skema(): BelongsTo
     {
         return $this->belongsTo(SkemaSertifikasi::class, 'id_skema', 'id_skema')->withTrashed();
+    }
+
+    /**
+     * Lokasi uji pilihan asesi; tetap ditampilkan walau TUK-nya kemudian dihapus dari master data.
+     *
+     * @return BelongsTo<Tuk, $this>
+     */
+    public function tuk(): BelongsTo
+    {
+        return $this->belongsTo(Tuk::class, 'id_tuk', 'id_tuk')->withTrashed();
+    }
+
+    /**
+     * @return HasMany<RiwayatLokasiPermohonan, $this>
+     */
+    public function riwayatLokasi(): HasMany
+    {
+        return $this->hasMany(RiwayatLokasiPermohonan::class, 'id_permohonan', 'id_permohonan')->orderBy('id_riwayat');
+    }
+
+    /**
+     * Ganti lokasi uji sekaligus mencatat riwayatnya. Null mengosongkan lokasi (asesi perlu memilih ulang).
+     */
+    public function gantiLokasi(?int $idTuk, string $keterangan, ?User $oleh): void
+    {
+        $this->riwayatLokasi()->create([
+            'id_tuk_lama' => $this->id_tuk,
+            'id_tuk_baru' => $idTuk,
+            'keterangan' => $keterangan,
+            'id_user' => $oleh?->id_user,
+        ]);
+
+        $this->update(['id_tuk' => $idTuk]);
+    }
+
+    /**
+     * Permohonan yang masih berjalan tetapi belum punya lokasi uji.
+     */
+    public function perluPilihLokasi(): bool
+    {
+        return $this->id_tuk === null && in_array($this->status->value, StatusPermohonan::aktif(), true);
     }
 
     /**

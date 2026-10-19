@@ -1,16 +1,21 @@
+import InputError from '@/components/input-error';
 import { DataPemohon, DataSertifikasi, DokumenList, Panel } from '@/components/pendaftaran/permohonan-detail';
+import PilihLokasi from '@/components/pendaftaran/pilih-lokasi';
 import { StatusPermohonanBadge } from '@/components/pendaftaran/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { type BreadcrumbItem, type PermohonanDetail, type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, CircleCheck, CircleX, Clock, RotateCcw } from 'lucide-react';
+import { type BreadcrumbItem, type PermohonanDetail, type SharedData, type Tuk } from '@/types';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, CircleCheck, CircleX, Clock, MapPinOff, RotateCcw } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
 interface ShowProps {
     permohonan: PermohonanDetail;
     bisaDaftarUlang: boolean;
+    /** Lokasi yang bisa dipilih bila lokasi sebelumnya dihapus admin. */
+    lokasiTersedia: Tuk[];
 }
 
 const HASIL = {
@@ -37,9 +42,17 @@ const HASIL = {
     },
 };
 
-export default function ShowPermohonan({ permohonan, bisaDaftarUlang }: ShowProps) {
+export default function ShowPermohonan({ permohonan, bisaDaftarUlang, lokasiTersedia }: ShowProps) {
     const { flash } = usePage<SharedData>().props;
     const hasil = HASIL[permohonan.status];
+
+    const lokasiForm = useForm({ id_tuk: lokasiTersedia.length === 1 ? lokasiTersedia[0].id_tuk.toString() : '' });
+
+    const simpanLokasi: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        lokasiForm.put(route('sertifikasi.lokasi', permohonan.id_permohonan), { preserveScroll: true });
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Pendaftaran Sertifikasi', href: '/sertifikasi' },
@@ -73,6 +86,50 @@ export default function ShowPermohonan({ permohonan, bisaDaftarUlang }: ShowProp
                     <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <AlertDescription>{flash.success}</AlertDescription>
                     </Alert>
+                )}
+
+                {flash.error && (
+                    <Alert variant="destructive">
+                        <AlertDescription>{flash.error}</AlertDescription>
+                    </Alert>
+                )}
+
+                {permohonan.perlu_pilih_lokasi && (
+                    <form
+                        onSubmit={simpanLokasi}
+                        className="flex flex-col gap-4 rounded-xl border border-amber-500/40 bg-amber-50 p-5 text-amber-900 sm:flex-row sm:items-start dark:bg-amber-950/40 dark:text-amber-200"
+                    >
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+                            <MapPinOff className="size-5" />
+                        </span>
+
+                        <div className="grid min-w-0 flex-1 gap-3">
+                            <div>
+                                <h2 className="font-semibold">Pilih ulang lokasi uji</h2>
+                                <p className="mt-1 text-sm opacity-90">
+                                    {lokasiTersedia.length > 0
+                                        ? 'Lokasi uji yang Anda pilih sebelumnya tidak lagi tersedia untuk skema ini. Pilih lokasi baru di bawah.'
+                                        : 'Lokasi uji untuk skema ini belum tersedia. Silakan tunggu informasi dari admin LSP.'}
+                                </p>
+                            </div>
+
+                            {lokasiTersedia.length > 0 && (
+                                <>
+                                    <div className="text-foreground">
+                                        <PilihLokasi
+                                            lokasi={lokasiTersedia}
+                                            value={lokasiForm.data.id_tuk}
+                                            onChange={(value) => lokasiForm.setData('id_tuk', value)}
+                                        />
+                                    </div>
+                                    <InputError message={lokasiForm.errors.id_tuk} />
+                                    <Button type="submit" className="justify-self-start" disabled={lokasiForm.processing || !lokasiForm.data.id_tuk}>
+                                        Simpan lokasi
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    </form>
                 )}
 
                 <div className={cn('flex flex-col gap-4 rounded-xl border p-5 sm:flex-row sm:items-start', hasil.className)}>

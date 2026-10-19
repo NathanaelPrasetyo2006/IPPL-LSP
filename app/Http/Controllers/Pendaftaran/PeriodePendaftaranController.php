@@ -8,6 +8,8 @@ use App\Http\Requests\Pendaftaran\PeriodePendaftaranRequest;
 use App\Models\PeriodePendaftaran;
 use App\Models\PermohonanSertifikasi;
 use App\Models\SkemaSertifikasi;
+use App\Models\Tuk;
+use App\Notifications\LokasiPermohonanPerluDipilihUlang;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -62,19 +64,21 @@ class PeriodePendaftaranController extends Controller
     {
         return Inertia::render('pendaftaran/periode/create', [
             'skemaOptions' => $this->skemaOptions(),
+            'tukOptions' => $this->tukOptions(),
         ]);
     }
 
     /**
-     * Simpan periode baru beserta skema yang dibuka.
+     * Simpan periode baru beserta skema yang dibuka dan lokasinya.
      */
     public function store(PeriodePendaftaranRequest $request): RedirectResponse
     {
         $data = $request->validated();
 
         DB::transaction(function () use ($data) {
-            $periode = PeriodePendaftaran::create(Arr::except($data, 'skema'));
+            $periode = PeriodePendaftaran::create(Arr::except($data, ['skema', 'lokasi']));
             $periode->skema()->sync($data['skema']);
+            $periode->simpanLokasi($data['lokasi']);
         });
 
         return to_route('pendaftaran.periode.index')
@@ -96,14 +100,25 @@ class PeriodePendaftaranController extends Controller
                 'keterangan' => $periode->keterangan,
                 'aktif' => $periode->aktif,
                 'skema' => $periode->skema()->pluck('skema_sertifikasi.id_skema'),
+                'lokasi' => $periode->lokasiForm(),
             ],
             'skemaTerpakai' => $this->skemaTerpakai($periode),
+            // Jumlah pendaftar berjalan per "id_tuk-id_skema", supaya admin tahu dampak melepas lokasi.
+            'pendaftarLokasi' => (object) $periode->permohonan()
+                ->whereIn('status', StatusPermohonan::aktif())
+                ->whereNotNull('id_tuk')
+                ->selectRaw('id_tuk, id_skema, count(*) as jumlah')
+                ->groupBy('id_tuk', 'id_skema')
+                ->get()
+                ->mapWithKeys(fn ($baris) => ["{$baris->id_tuk}-{$baris->id_skema}" => (int) $baris->jumlah])
+                ->all(),
             'skemaOptions' => $this->skemaOptions(),
+            'tukOptions' => $this->tukOptions(),
         ]);
     }
 
     /**
-     * Perbarui periode dan daftar skemanya.
+     * Perbarui periode, daftar skema, dan lokasinya.
      */
     public function update(PeriodePendaftaranRequest $request, PeriodePendaftaran $periode): RedirectResponse
     {
@@ -118,13 +133,27 @@ class PeriodePendaftaranController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($data, $periode) {
-            $periode->update(Arr::except($data, 'skema'));
+        $terdampak = DB::transaction(function () use ($data, $periode, $request) {
+            $periode->update(Arr::except($data, ['skema', 'lokasi']));
             $periode->skema()->sync($data['skema']);
+            $periode->simpanLokasi($data['lokasi']);
+
+            return $periode->kosongkanLokasiTidakTersedia($request->user());
         });
 
-        return to_route('pendaftaran.periode.index')
-            ->with('success', "Periode {$periode->nama} berhasil diperbarui.");
+        // Dikirim setelah commit supaya asesi tidak menerima pemberitahuan untuk perubahan yang batal.
+        foreach ($terdampak as ['permohonan' => $permohonan, 'lokasi_lama' => $lokasiLama]) {
+            $permohonan->loadMissing(['dataDiri.user', 'skema', 'periode']);
+            $permohonan->dataDiri->user?->notify(new LokasiPermohonanPerluDipilihUlang($permohonan, $lokasiLama));
+        }
+
+        $pesan = "Periode {$periode->nama} berhasil diperbarui.";
+
+        if ($terdampak !== []) {
+            $pesan .= ' '.count($terdampak).' pendaftar diminta memilih ulang lokasi uji karena lokasinya dihapus.';
+        }
+
+        return to_route('pendaftaran.periode.index')->with('success', $pesan);
     }
 
     /**
@@ -170,6 +199,14 @@ class PeriodePendaftaranController extends Controller
                 'unit_kompetensi_count' => $skema->unit_kompetensi_count,
             ])
             ->all();
+    }
+
+    /**
+     * @return list<array{id_tuk: int, nama: string, alamat: string}>
+     */
+    private function tukOptions(): array
+    {
+        return Tuk::query()->orderBy('nama')->get(['id_tuk', 'nama', 'alamat'])->toArray();
     }
 
     /**

@@ -148,7 +148,7 @@ export interface NotifikasiItem {
     id: string;
     judul: string;
     pesan: string;
-    tipe: 'info' | 'sukses' | 'gagal';
+    tipe: 'info' | 'sukses' | 'gagal' | 'peringatan';
     dibaca: boolean;
     waktu: string | null;
 }
@@ -190,6 +190,9 @@ export interface PermohonanRingkas {
     status_label: string;
     skema: { id_skema: number; judul: string; nomor: string } | null;
     periode: { id_periode: number; nama: string } | null;
+    lokasi: Tuk | null;
+    /** Permohonan berjalan yang lokasinya dikosongkan admin dan harus dipilih ulang oleh asesi. */
+    perlu_pilih_lokasi: boolean;
     nama_asesi: string | null;
     kode_asesi: string | null;
     diajukan_pada: string | null;
@@ -215,6 +218,16 @@ export interface PermohonanDetail extends Omit<PermohonanRingkas, 'skema'> {
     skema: { id_skema: number; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
     pemohon: Record<string, string | null> & { nama_lengkap: string; kode_asesi: string };
     dokumen: DokumenPermohonan[];
+    riwayat_lokasi: RiwayatLokasi[];
+}
+
+export interface RiwayatLokasi {
+    id_riwayat: number;
+    waktu: string | null;
+    lokasi_lama: string | null;
+    lokasi_baru: string | null;
+    keterangan: string;
+    oleh: string | null;
 }
 
 /** Definisi jenis dokumen APL-01 dari server (JenisDokumen::definisi). */

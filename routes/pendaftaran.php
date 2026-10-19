@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:asesi', 'verified'])
         Route::get('daftar/{periode}/{skema}', [PendaftaranSertifikasiController::class, 'create'])->name('create');
         Route::post('daftar/{periode}/{skema}', [PendaftaranSertifikasiController::class, 'store'])->name('store');
         Route::get('permohonan/{permohonan}', [PendaftaranSertifikasiController::class, 'show'])->name('show');
+        Route::put('permohonan/{permohonan}/lokasi', [PendaftaranSertifikasiController::class, 'pilihLokasi'])->name('lokasi');
         Route::get('dokumen-saya/{jenis}', [PendaftaranSertifikasiController::class, 'dokumenSaya'])->name('dokumen-saya');
     });
 

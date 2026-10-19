@@ -4,11 +4,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { type SkemaOption } from '@/types';
+import { type SkemaOption, type Tuk } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Lock, Search } from 'lucide-react';
+import { Lock, MapPin, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEventHandler, useMemo, useState } from 'react';
+
+export type LokasiFormData = {
+    id_tuk: string;
+    skema: number[];
+};
 
 export type PeriodeFormData = {
     nama: string;
@@ -18,6 +24,7 @@ export type PeriodeFormData = {
     keterangan: string;
     aktif: boolean;
     skema: number[];
+    lokasi: LokasiFormData[];
 };
 
 interface PeriodeFormProps {
@@ -26,8 +33,11 @@ interface PeriodeFormProps {
     errors: Partial<Record<string, string>>;
     processing: boolean;
     skemaOptions: SkemaOption[];
+    tukOptions: Tuk[];
     /** Skema yang sudah punya pendaftar sehingga tidak boleh dilepas. */
     skemaTerkunci?: number[];
+    /** Jumlah pendaftar berjalan per "id_tuk-id_skema". */
+    pendaftarLokasi?: Record<string, number>;
     onSubmit: FormEventHandler;
     submitLabel: string;
 }
@@ -41,7 +51,9 @@ export default function PeriodeForm({
     errors,
     processing,
     skemaOptions,
+    tukOptions,
     skemaTerkunci = [],
+    pendaftarLokasi = {},
     onSubmit,
     submitLabel,
 }: PeriodeFormProps) {
@@ -55,9 +67,39 @@ export default function PeriodeForm({
 
     const toggleSkema = (id: number, checked: boolean) => {
         setData('skema', checked ? [...data.skema, id] : data.skema.filter((item) => item !== id));
+
+        // Skema yang dilepas di atas ikut dilepas dari semua lokasi.
+        if (!checked) {
+            setData(
+                'lokasi',
+                data.lokasi.map((lokasi) => ({ ...lokasi, skema: lokasi.skema.filter((item) => item !== id) })),
+            );
+        }
     };
 
     const skemaError = errors.skema ?? Object.entries(errors).find(([key]) => key.startsWith('skema.'))?.[1];
+
+    // Urutan skema di lokasi mengikuti urutan daftar skema, bukan urutan klik.
+    const skemaDibuka = skemaOptions.filter((skema) => data.skema.includes(skema.id_skema));
+    const tukTerpakai = data.lokasi.map((lokasi) => lokasi.id_tuk).filter(Boolean);
+    const skemaTanpaLokasi = skemaDibuka.filter((skema) => !data.lokasi.some((lokasi) => lokasi.skema.includes(skema.id_skema)));
+
+    const ubahLokasi = (index: number, perubahan: Partial<LokasiFormData>) => {
+        setData(
+            'lokasi',
+            data.lokasi.map((lokasi, i) => (i === index ? { ...lokasi, ...perubahan } : lokasi)),
+        );
+    };
+
+    const toggleSkemaLokasi = (index: number, id: number, checked: boolean) => {
+        const skema = data.lokasi[index].skema;
+
+        ubahLokasi(index, { skema: checked ? [...skema, id] : skema.filter((item) => item !== id) });
+    };
+
+    const lokasiError = (index: number, field: 'id_tuk' | 'skema') =>
+        errors[`lokasi.${index}.${field}`] ??
+        (field === 'skema' ? Object.entries(errors).find(([key]) => key.startsWith(`lokasi.${index}.skema.`))?.[1] : undefined);
 
     return (
         <form onSubmit={onSubmit} className="bg-card max-w-3xl rounded-xl border shadow-xs">
@@ -204,6 +246,158 @@ export default function PeriodeForm({
                     </div>
 
                     <InputError message={skemaError} />
+                </div>
+
+                <div className="grid gap-3">
+                    <div>
+                        <Label>Lokasi TUK</Label>
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Pilih lokasi, lalu centang skema yang diujikan di lokasi tersebut. Setiap lokasi wajib memiliki minimal satu skema, dan
+                            setiap skema wajib ada di minimal satu lokasi.
+                        </p>
+                    </div>
+
+                    {skemaDibuka.length === 0 ? (
+                        <div className="text-muted-foreground flex items-center gap-3 rounded-lg border border-dashed p-6 text-sm">
+                            <Lock className="size-4 shrink-0" />
+                            Pilih skema yang dibuka terlebih dahulu sebelum menentukan lokasi.
+                        </div>
+                    ) : tukOptions.length === 0 ? (
+                        <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
+                            Belum ada lokasi TUK.{' '}
+                            <Link href={route('master.tuk.create')} className="text-foreground underline">
+                                Tambah lokasi TUK
+                            </Link>{' '}
+                            terlebih dahulu.
+                        </p>
+                    ) : (
+                        <>
+                            {data.lokasi.map((lokasi, index) => {
+                                const tukError = lokasiError(index, 'id_tuk');
+                                const skemaLokasiError = lokasiError(index, 'skema');
+
+                                return (
+                                    <div key={index} className={cn('rounded-lg border', (tukError || skemaLokasiError) && 'border-destructive')}>
+                                        <div className="bg-muted/40 flex items-center gap-3 rounded-t-lg border-b px-4 py-3">
+                                            <MapPin className="text-muted-foreground size-4 shrink-0" />
+                                            <span className="text-sm font-medium">Lokasi {index + 1}</span>
+
+                                            {data.lokasi.length > 1 && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    title="Hapus lokasi"
+                                                    className="ml-auto size-8 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50"
+                                                    onClick={() =>
+                                                        setData(
+                                                            'lokasi',
+                                                            data.lokasi.filter((_, i) => i !== index),
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash2 />
+                                                    <span className="sr-only">Hapus lokasi {index + 1}</span>
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <div className="grid gap-4 p-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor={`lokasi-${index}`}>Nama lokasi</Label>
+                                                <Select value={lokasi.id_tuk} onValueChange={(value) => ubahLokasi(index, { id_tuk: value })}>
+                                                    <SelectTrigger id={`lokasi-${index}`}>
+                                                        <SelectValue placeholder="Pilih lokasi TUK" />
+                                                    </SelectTrigger>
+
+                                                    <SelectContent>
+                                                        {tukOptions.map((tuk) => {
+                                                            const id = tuk.id_tuk.toString();
+
+                                                            return (
+                                                                <SelectItem
+                                                                    key={id}
+                                                                    value={id}
+                                                                    disabled={id !== lokasi.id_tuk && tukTerpakai.includes(id)}
+                                                                >
+                                                                    {tuk.nama}
+                                                                </SelectItem>
+                                                            );
+                                                        })}
+                                                    </SelectContent>
+                                                </Select>
+
+                                                {lokasi.id_tuk && (
+                                                    <p className="text-muted-foreground text-xs whitespace-pre-line">
+                                                        {tukOptions.find((tuk) => tuk.id_tuk.toString() === lokasi.id_tuk)?.alamat}
+                                                    </p>
+                                                )}
+
+                                                <InputError message={tukError} />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label>Skema di lokasi ini</Label>
+
+                                                {lokasi.id_tuk ? (
+                                                    <div className="grid gap-2 sm:grid-cols-2">
+                                                        {skemaDibuka.map((skema) => (
+                                                            <label
+                                                                key={skema.id_skema}
+                                                                htmlFor={`lokasi-${index}-skema-${skema.id_skema}`}
+                                                                className="hover:bg-muted/50 flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2"
+                                                            >
+                                                                <Checkbox
+                                                                    id={`lokasi-${index}-skema-${skema.id_skema}`}
+                                                                    checked={lokasi.skema.includes(skema.id_skema)}
+                                                                    onCheckedChange={(value) =>
+                                                                        toggleSkemaLokasi(index, skema.id_skema, value === true)
+                                                                    }
+                                                                    className="mt-0.5"
+                                                                />
+                                                                <span className="min-w-0 flex-1">
+                                                                    <span className="block text-sm">{skema.judul}</span>
+                                                                    <span className="text-muted-foreground block text-xs">
+                                                                        {skema.nomor}
+                                                                        {pendaftarLokasi[`${lokasi.id_tuk}-${skema.id_skema}`] > 0 &&
+                                                                            ` · ${pendaftarLokasi[`${lokasi.id_tuk}-${skema.id_skema}`]} pendaftar`}
+                                                                    </span>
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-muted-foreground text-xs">Pilih lokasi terlebih dahulu.</p>
+                                                )}
+
+                                                <InputError message={skemaLokasiError} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="justify-self-start"
+                                disabled={data.lokasi.length >= tukOptions.length}
+                                onClick={() => setData('lokasi', [...data.lokasi, { id_tuk: '', skema: [] }])}
+                            >
+                                <Plus />
+                                Tambah lokasi
+                            </Button>
+
+                            {skemaTanpaLokasi.length > 0 && (
+                                <p className="text-xs text-amber-700 dark:text-amber-500">
+                                    Setiap skema wajib memiliki lokasi. Belum ada lokasi untuk:{' '}
+                                    {skemaTanpaLokasi.map((skema) => skema.judul).join(', ')}.
+                                </p>
+                            )}
+                        </>
+                    )}
+
+                    <InputError message={errors.lokasi} />
                 </div>
 
                 <div className="flex items-start gap-3 rounded-lg border p-4">

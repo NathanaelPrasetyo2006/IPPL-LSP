@@ -1,4 +1,5 @@
 import InputError from '@/components/input-error';
+import PilihLokasi from '@/components/pendaftaran/pilih-lokasi';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { type BreadcrumbItem, type JenisDokumenDef } from '@/types';
+import { type BreadcrumbItem, type JenisDokumenDef, type Tuk } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { BadgeCheck, ChevronDown, ExternalLink, FileUp, Info, LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
@@ -47,6 +48,7 @@ type Profil = {
 type Apl01Form = Profil & {
     tujuan_asesmen: string;
     tujuan_asesmen_lainnya: string;
+    id_tuk: string;
     pernyataan: boolean;
     dokumen: Record<string, File | null>;
 };
@@ -54,6 +56,8 @@ type Apl01Form = Profil & {
 interface CreateProps {
     periode: { id_periode: number; nama: string; tanggal_tutup: string };
     skema: { id_skema: number; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
+    /** Lokasi uji yang tersedia untuk skema ini pada periode terpilih. */
+    lokasi: Tuk[];
     kodeAsesi: string | null;
     email: string;
     profil: Partial<Record<keyof Profil, string | number | null>>;
@@ -143,7 +147,7 @@ function SelectField({
     );
 }
 
-export default function CreateApl01({ periode, skema, kodeAsesi, email, profil, dokumenIdentitas, options }: CreateProps) {
+export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, profil, dokumenIdentitas, options }: CreateProps) {
     const awal = (key: keyof Profil) => (profil[key] === null || profil[key] === undefined ? '' : String(profil[key]));
 
     const { data, setData, post, errors, processing, transform } = useForm<Apl01Form>({
@@ -172,6 +176,8 @@ export default function CreateApl01({ periode, skema, kodeAsesi, email, profil, 
         email_kantor: awal('email_kantor'),
         tujuan_asesmen: 'sertifikasi',
         tujuan_asesmen_lainnya: '',
+        // Bila hanya ada satu lokasi, langsung terpilih.
+        id_tuk: lokasi.length === 1 ? lokasi[0].id_tuk.toString() : '',
         pernyataan: false,
         dokumen: {},
     });
@@ -482,6 +488,10 @@ export default function CreateApl01({ periode, skema, kodeAsesi, email, profil, 
                                     </label>
                                 ))}
                             </div>
+                        </Field>
+
+                        <Field id="id_tuk" label="Lokasi uji (TUK)" error={err.id_tuk} hint="Tempat Anda akan mengikuti asesmen." required>
+                            <PilihLokasi lokasi={lokasi} value={data.id_tuk} onChange={(value) => setData('id_tuk', value)} />
                         </Field>
 
                         {data.tujuan_asesmen === 'lainnya' && (
