@@ -27,32 +27,75 @@ test('asesor can view skema but can not change it', function () {
     $this->actingAs($asesor)->get('/master/skema-sertifikasi/create')->assertForbidden();
     $this->actingAs($asesor)->delete("/master/skema-sertifikasi/{$skema->id_skema}")->assertForbidden();
     $this->actingAs($asesor)
-        ->post("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi", ['kode' => 'X', 'judul' => 'X', 'urutan' => 1])
+        ->post("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi", ['kode' => 'X', 'judul' => 'X'])
+        ->assertForbidden();
+    $this->actingAs($asesor)
+        ->put("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun", ['urutan' => [], 'hapus' => []])
         ->assertForbidden();
 });
 
-test('admin can add, update, and soft delete a unit kompetensi', function () {
+test('new units are appended to the end and updating keeps their order', function () {
     $skema = SkemaSertifikasi::factory()->create();
+    UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => 4]);
 
     $this->actingAs($this->admin)
         ->post("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi", [
             'kode' => 'J.620100.001.01',
             'judul' => 'Menganalisis Tools',
-            'urutan' => 1,
+            'urutan' => 1, // Diabaikan: urutan selalu ditentukan sistem.
         ])
         ->assertSessionHasNoErrors();
 
-    $unit = $skema->unitKompetensi()->sole();
+    $unit = $skema->unitKompetensi()->where('kode', 'J.620100.001.01')->sole();
+    expect($unit->urutan)->toBe(5);
 
     $this->actingAs($this->admin)
-        ->put("/master/unit-kompetensi/{$unit->id_unit_kompetensi}", ['kode' => $unit->kode, 'judul' => 'Judul Baru', 'urutan' => 2])
+        ->put("/master/unit-kompetensi/{$unit->id_unit_kompetensi}", ['kode' => $unit->kode, 'judul' => 'Judul Baru'])
         ->assertSessionHasNoErrors();
 
-    expect($unit->fresh())->judul->toBe('Judul Baru')->urutan->toBe(2);
+    expect($unit->fresh())->judul->toBe('Judul Baru')->urutan->toBe(5);
+});
 
-    $this->actingAs($this->admin)->delete("/master/unit-kompetensi/{$unit->id_unit_kompetensi}");
+test('saving the arranged list renumbers units and soft deletes removed ones', function () {
+    $skema = SkemaSertifikasi::factory()->create();
+    [$satu, $dua, $tiga, $empat] = collect([1, 2, 3, 4])
+        ->map(fn ($urutan) => UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => $urutan]))
+        ->all();
 
-    $this->assertSoftDeleted($unit);
+    // Unit nomor 1 dihapus, unit nomor 4 diseret ke paling atas.
+    $this->actingAs($this->admin)
+        ->put("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun", [
+            'urutan' => [$empat->id_unit_kompetensi, $dua->id_unit_kompetensi, $tiga->id_unit_kompetensi],
+            'hapus' => [$satu->id_unit_kompetensi],
+        ])
+        ->assertSessionHas('success');
+
+    $this->assertSoftDeleted($satu);
+
+    expect($skema->unitKompetensi()->orderBy('urutan')->pluck('urutan', 'id_unit_kompetensi')->all())->toBe([
+        $empat->id_unit_kompetensi => 1,
+        $dua->id_unit_kompetensi => 2,
+        $tiga->id_unit_kompetensi => 3,
+    ]);
+});
+
+test('arranging is rejected when the list on screen is stale or belongs to another skema', function () {
+    $skema = SkemaSertifikasi::factory()->create();
+    $unit = UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => 1]);
+    $baru = UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => 2]);
+    $milikLain = UnitKompetensi::factory()->create();
+
+    $url = "/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun";
+
+    // Unit $baru tidak ikut terkirim, mis. ditambahkan admin lain setelah halaman dibuka.
+    $this->actingAs($this->admin)->put($url, ['urutan' => [$unit->id_unit_kompetensi], 'hapus' => []])->assertSessionHas('error');
+
+    $this->actingAs($this->admin)
+        ->put($url, ['urutan' => [$unit->id_unit_kompetensi, $baru->id_unit_kompetensi], 'hapus' => [$milikLain->id_unit_kompetensi]])
+        ->assertSessionHas('error');
+
+    expect($milikLain->fresh()->trashed())->toBeFalse()
+        ->and($baru->fresh()->urutan)->toBe(2);
 });
 
 test('unit code must be unique within a skema but may repeat across skema', function () {
@@ -60,11 +103,11 @@ test('unit code must be unique within a skema but may repeat across skema', func
     $skemaLain = SkemaSertifikasi::factory()->create();
 
     $this->actingAs($this->admin)
-        ->post("/master/skema-sertifikasi/{$unit->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Duplikat', 'urutan' => 2])
+        ->post("/master/skema-sertifikasi/{$unit->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Duplikat'])
         ->assertSessionHasErrors('kode');
 
     $this->actingAs($this->admin)
-        ->post("/master/skema-sertifikasi/{$skemaLain->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Skema lain', 'urutan' => 1])
+        ->post("/master/skema-sertifikasi/{$skemaLain->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Skema lain'])
         ->assertSessionHasNoErrors();
 });
 

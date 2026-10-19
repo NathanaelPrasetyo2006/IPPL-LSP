@@ -22,9 +22,13 @@ Route::middleware('auth')
                 ->parameters(['skema-sertifikasi' => 'skema'])
                 ->except(['index', 'show']);
 
+            // Hapus unit dilakukan lewat susun() bersama perubahan urutan, saat admin menekan Simpan.
+            Route::put('skema-sertifikasi/{skema}/unit-kompetensi/susun', [UnitKompetensiController::class, 'susun'])
+                ->name('skema-sertifikasi.unit-kompetensi.susun');
+
             Route::resource('skema-sertifikasi.unit-kompetensi', UnitKompetensiController::class)
                 ->parameters(['skema-sertifikasi' => 'skema', 'unit-kompetensi' => 'unit'])
-                ->only(['store', 'update', 'destroy'])
+                ->only(['store', 'update'])
                 ->shallow();
 
             Route::resource('tuk', TukController::class)->except(['index', 'show']);

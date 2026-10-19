@@ -35,8 +35,6 @@ interface IndexProps {
     };
 }
 
-type DeleteTarget = { type: 'skema'; skema: SkemaSertifikasi } | { type: 'unit'; unit: UnitKompetensi };
-
 const actionClass = {
     view: 'text-sky-600 hover:bg-sky-50 hover:text-sky-700 dark:text-sky-400 dark:hover:bg-sky-950/50',
     addUnit: 'text-violet-600 hover:bg-violet-50 hover:text-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/50',
@@ -52,10 +50,10 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
     const isFirstRender = useRef(true);
 
     // Yang disimpan hanya id; datanya selalu diambil dari props terbaru supaya
-    // daftar unit di popup ikut berubah setelah tambah/ubah/hapus unit.
+    // daftar unit di popup ikut berubah setelah tambah/ubah/susun unit.
     const [detailId, setDetailId] = useState<number | null>(null);
     const [unitDialog, setUnitDialog] = useState<{ skemaId: number; unit: UnitKompetensi | null } | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<SkemaSertifikasi | null>(null);
     const [deleting, setDeleting] = useState(false);
 
     const findSkema = (id: number | undefined) => skema.data.find((item) => item.id_skema === id) ?? null;
@@ -85,15 +83,8 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
             return;
         }
 
-        const url =
-            deleteTarget.type === 'skema'
-                ? route('master.skema-sertifikasi.destroy', deleteTarget.skema.id_skema)
-                : route('master.unit-kompetensi.destroy', deleteTarget.unit.id_unit_kompetensi);
-
-        router.delete(url, {
+        router.delete(route('master.skema-sertifikasi.destroy', deleteTarget.id_skema), {
             preserveScroll: true,
-            // Popup detail tetap terbuka saat yang dihapus hanya satu unit.
-            preserveState: deleteTarget.type === 'unit',
             onStart: () => setDeleting(true),
             onFinish: () => {
                 setDeleting(false);
@@ -243,7 +234,7 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
                                                         size="icon"
                                                         title="Hapus skema"
                                                         className={`size-8 ${actionClass.delete}`}
-                                                        onClick={() => setDeleteTarget({ type: 'skema', skema: item })}
+                                                        onClick={() => setDeleteTarget(item)}
                                                     >
                                                         <Trash2 />
                                                         <span className="sr-only">Hapus {item.judul}</span>
@@ -275,7 +266,6 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
                 canManage={isAdmin}
                 onAddUnit={() => detailSkema && setUnitDialog({ skemaId: detailSkema.id_skema, unit: null })}
                 onEditUnit={(unit) => setUnitDialog({ skemaId: unit.id_skema, unit })}
-                onDeleteUnit={(unit) => setDeleteTarget({ type: 'unit', unit })}
             />
 
             {isAdmin && (
@@ -292,19 +282,12 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
                         onOpenChange={(open) => !open && setDeleteTarget(null)}
                         processing={deleting}
                         onConfirm={destroy}
-                        title={deleteTarget?.type === 'unit' ? 'Hapus unit kompetensi?' : 'Hapus skema sertifikasi?'}
+                        title="Hapus skema sertifikasi?"
                         description={
-                            deleteTarget?.type === 'unit' ? (
-                                <>
-                                    Unit <span className="text-foreground font-medium">{deleteTarget.unit.kode}</span> &mdash;{' '}
-                                    {deleteTarget.unit.judul} akan dihapus dari skema.
-                                </>
-                            ) : (
-                                <>
-                                    Skema <span className="text-foreground font-medium">{deleteTarget?.skema.nomor}</span> &mdash;{' '}
-                                    {deleteTarget?.skema.judul} akan dihapus dari daftar beserta unit kompetensinya.
-                                </>
-                            )
+                            <>
+                                Skema <span className="text-foreground font-medium">{deleteTarget?.nomor}</span> &mdash; {deleteTarget?.judul} akan
+                                dihapus dari daftar beserta unit kompetensinya.
+                            </>
                         }
                         note="Data dihapus secara soft delete: tidak tampil lagi di sistem, tetapi tetap tersimpan dan dapat dipulihkan oleh pengelola database."
                     />

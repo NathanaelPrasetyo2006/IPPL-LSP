@@ -19,16 +19,11 @@ interface UnitKompetensiDialogProps {
 interface UnitForm {
     kode: string;
     judul: string;
-    urutan: string;
     [key: string]: string;
 }
 
-function nextUrutan(skema: SkemaSertifikasi | null): number {
-    return Math.max(0, ...(skema?.unit_kompetensi ?? []).map((unit) => unit.urutan)) + 1;
-}
-
 export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }: UnitKompetensiDialogProps) {
-    const { data, setData, post, put, processing, errors, clearErrors } = useForm<UnitForm>({ kode: '', judul: '', urutan: '' });
+    const { data, setData, post, put, processing, errors, clearErrors } = useForm<UnitForm>({ kode: '', judul: '' });
 
     // Isi ulang form setiap dialog dibuka, sesuai unit yang dipilih.
     useEffect(() => {
@@ -40,7 +35,6 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
         setData({
             kode: unit?.kode ?? '',
             judul: unit?.judul ?? '',
-            urutan: String(unit?.urutan ?? nextUrutan(skema)),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, unit, skema?.id_skema]);
@@ -73,34 +67,19 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4 sm:grid-cols-[1fr_7rem]">
-                        <div className="grid gap-2">
-                            <Label htmlFor="unit-kode">Kode unit</Label>
-                            <Input
-                                id="unit-kode"
-                                value={data.kode}
-                                onChange={(e) => setData('kode', e.target.value)}
-                                required
-                                autoFocus
-                                autoComplete="off"
-                                placeholder="Contoh: J.620100.001.01"
-                            />
-                            <InputError message={errors.kode} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="unit-urutan">Urutan</Label>
-                            <Input
-                                id="unit-urutan"
-                                type="number"
-                                min={1}
-                                max={999}
-                                value={data.urutan}
-                                onChange={(e) => setData('urutan', e.target.value)}
-                                required
-                            />
-                            <InputError message={errors.urutan} />
-                        </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="unit-kode">Kode unit</Label>
+                        <Input
+                            id="unit-kode"
+                            value={data.kode}
+                            onChange={(e) => setData('kode', e.target.value)}
+                            required
+                            autoFocus
+                            autoComplete="off"
+                            placeholder="Contoh: J.620100.001.01"
+                        />
+                        {!unit && <p className="text-muted-foreground text-xs">Unit baru ditempatkan di urutan paling akhir.</p>}
+                        <InputError message={errors.kode} />
                     </div>
 
                     <div className="grid gap-2">

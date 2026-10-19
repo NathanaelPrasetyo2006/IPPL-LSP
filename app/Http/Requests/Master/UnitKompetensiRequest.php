@@ -35,7 +35,6 @@ class UnitKompetensiRequest extends FormRequest
                     ->ignore($unit?->id_unit_kompetensi, 'id_unit_kompetensi'),
             ],
             'judul' => ['required', 'string', 'max:255'],
-            'urutan' => ['required', 'integer', 'min:1', 'max:999'],
         ];
     }
 
@@ -49,7 +48,6 @@ class UnitKompetensiRequest extends FormRequest
         return [
             'kode' => 'kode unit',
             'judul' => 'judul unit',
-            'urutan' => 'urutan',
         ];
     }
 
