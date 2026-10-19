@@ -13,6 +13,7 @@ use App\Notifications\LokasiPermohonanPerluDipilihUlang;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -187,6 +188,7 @@ class PeriodePendaftaranController extends Controller
                 'lokasi' => $periode->lokasiForm(),
             ],
             'skemaTerpakai' => $this->skemaTerpakai($periode),
+            'sudahDibuka' => $periode->sudahDibuka(),
             // Jumlah pendaftar berjalan per "id_tuk-id_skema", supaya admin tahu dampak melepas lokasi.
             'pendaftarLokasi' => (object) $periode->permohonan()
                 ->whereIn('status', StatusPermohonan::aktif())
@@ -215,6 +217,20 @@ class PeriodePendaftaranController extends Controller
             throw ValidationException::withMessages([
                 'skema' => 'Skema yang sudah memiliki pendaftar pada periode ini tidak dapat dihapus dari daftar.',
             ]);
+        }
+
+        // Nama dan tanggal buka sudah diumumkan ke calon asesi begitu periode dibuka.
+        if ($periode->sudahDibuka()) {
+            $terkunci = array_filter([
+                'nama' => $data['nama'] !== $periode->nama,
+                'tanggal_buka' => Carbon::parse($data['tanggal_buka'])->toDateString() !== $periode->tanggal_buka->toDateString(),
+            ]);
+
+            if ($terkunci !== []) {
+                throw ValidationException::withMessages(
+                    array_map(fn () => 'Tidak dapat diubah karena periode sudah dibuka.', $terkunci),
+                );
+            }
         }
 
         $terdampak = DB::transaction(function () use ($data, $periode, $request) {

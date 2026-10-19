@@ -36,6 +36,8 @@ interface PeriodeFormProps {
     tukOptions: Tuk[];
     /** Skema yang sudah punya pendaftar sehingga tidak boleh dilepas. */
     skemaTerkunci?: number[];
+    /** Periode sudah dibuka: nama dan tanggal buka tidak boleh diubah. */
+    identitasTerkunci?: boolean;
     /** Jumlah pendaftar berjalan per "id_tuk-id_skema". */
     pendaftarLokasi?: Record<string, number>;
     onSubmit: FormEventHandler;
@@ -56,6 +58,7 @@ export default function PeriodeForm({
     skemaOptions,
     tukOptions,
     skemaTerkunci = [],
+    identitasTerkunci = false,
     pendaftarLokasi = {},
     onSubmit,
     submitLabel,
@@ -115,18 +118,31 @@ export default function PeriodeForm({
                         id="nama"
                         value={data.nama}
                         onChange={(e) => setData('nama', e.target.value)}
+                        disabled={identitasTerkunci}
                         required
                         autoFocus
                         autoComplete="off"
                         placeholder="Contoh: Gelombang 1 Tahun 2026"
                     />
+                    {identitasTerkunci && (
+                        <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                            <Lock className="size-3" />
+                            Nama periode dan tanggal buka tidak dapat diubah karena periode sudah dibuka.
+                        </p>
+                    )}
                     <InputError message={errors.nama} />
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-3">
                     <div className="grid gap-2">
                         <Label htmlFor="tanggal_buka">Tanggal buka</Label>
-                        <DateInput id="tanggal_buka" value={data.tanggal_buka} onChange={(e) => setData('tanggal_buka', e.target.value)} required />
+                        <DateInput
+                            id="tanggal_buka"
+                            value={data.tanggal_buka}
+                            onChange={(e) => setData('tanggal_buka', e.target.value)}
+                            disabled={identitasTerkunci}
+                            required
+                        />
                         <InputError message={errors.tanggal_buka} />
                     </div>
 

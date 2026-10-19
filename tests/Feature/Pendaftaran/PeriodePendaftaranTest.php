@@ -121,6 +121,9 @@ test('editing a period replaces its locations', function () {
 
     $this->actingAs($this->admin)
         ->put("/pendaftaran/periode/{$periode->id_periode}", dataPeriode([
+            // Periode sudah dibuka, jadi nama dan tanggal buka dikirim apa adanya.
+            'nama' => $periode->nama,
+            'tanggal_buka' => $periode->tanggal_buka->toDateString(),
             'skema' => [$skemaB],
             'lokasi' => [['id_tuk' => (string) $tukB, 'skema' => [$skemaB]]],
         ]))
@@ -225,4 +228,49 @@ test('only admin can open the period detail', function () {
 
     $this->actingAs(User::factory()->asesor()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
     $this->actingAs(User::factory()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
+});
+
+test('name and opening date are locked once the period has opened', function () {
+    $lokasi = [['id_tuk' => (string) $this->tuk[0]->id_tuk, 'skema' => [$this->skema[0]->id_skema]]];
+    $periode = PeriodePendaftaran::factory()->create(['nama' => 'Gelombang Lama', 'kuota' => 10]);
+    $periode->skema()->sync([$this->skema[0]->id_skema]);
+    $periode->simpanLokasi($lokasi);
+
+    $data = fn (array $override) => dataPeriode([
+        'nama' => 'Gelombang Lama',
+        'tanggal_buka' => $periode->tanggal_buka->toDateString(),
+        'skema' => [$this->skema[0]->id_skema],
+        'lokasi' => $lokasi,
+        ...$override,
+    ]);
+
+    $this->actingAs($this->admin)->get("/pendaftaran/periode/{$periode->id_periode}/edit")->assertInertia(fn ($page) => $page->where('sudahDibuka', true));
+
+    $this->actingAs($this->admin)
+        ->put("/pendaftaran/periode/{$periode->id_periode}", $data(['nama' => 'Nama Baru', 'tanggal_buka' => today()->toDateString()]))
+        ->assertSessionHasErrors(['nama', 'tanggal_buka']);
+
+    // Data lain seperti kuota dan tanggal tutup tetap bisa diubah.
+    $this->actingAs($this->admin)
+        ->put("/pendaftaran/periode/{$periode->id_periode}", $data(['kuota' => 99]))
+        ->assertSessionHasNoErrors();
+
+    expect($periode->fresh())->nama->toBe('Gelombang Lama')->kuota->toBe(99);
+});
+
+test('a scheduled period can still be renamed and rescheduled', function () {
+    $lokasi = [['id_tuk' => (string) $this->tuk[0]->id_tuk, 'skema' => [$this->skema[0]->id_skema]]];
+    $periode = PeriodePendaftaran::factory()->dijadwalkan()->create(['kuota' => 10]);
+
+    $this->actingAs($this->admin)
+        ->put("/pendaftaran/periode/{$periode->id_periode}", dataPeriode([
+            'nama' => 'Nama Baru',
+            'tanggal_buka' => today()->addDays(10)->toDateString(),
+            'tanggal_tutup' => today()->addDays(20)->toDateString(),
+            'skema' => [$this->skema[0]->id_skema],
+            'lokasi' => $lokasi,
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($periode->fresh()->nama)->toBe('Nama Baru');
 });

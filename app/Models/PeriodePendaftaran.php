@@ -150,6 +150,15 @@ class PeriodePendaftaran extends Model
     }
 
     /**
+     * Tanggal buka sudah tiba. Sejak itu nama periode dan tanggal buka tidak boleh diubah lagi.
+     * Patokannya tanggal, bukan status aktif: periode yang ditutup sebelum sempat dibuka masih bisa diubah.
+     */
+    public function sudahDibuka(): bool
+    {
+        return $this->tanggal_buka->lte(today());
+    }
+
+    /**
      * dibuka | dijadwalkan | ditutup
      */
     public function status(): string

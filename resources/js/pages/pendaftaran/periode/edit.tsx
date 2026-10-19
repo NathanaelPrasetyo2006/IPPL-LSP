@@ -26,6 +26,7 @@ interface EditPeriodeProps {
         lokasi: LokasiFormData[];
     };
     skemaTerpakai: number[];
+    sudahDibuka: boolean;
     pendaftarLokasi: Record<string, number>;
     skemaOptions: SkemaOption[];
     tukOptions: Tuk[];
@@ -95,7 +96,7 @@ function daftarPerubahan(awal: PeriodeFormData, kini: PeriodeFormData, skemaOpti
     return perubahan;
 }
 
-export default function EditPeriode({ periode, skemaTerpakai, pendaftarLokasi, skemaOptions, tukOptions }: EditPeriodeProps) {
+export default function EditPeriode({ periode, skemaTerpakai, sudahDibuka, pendaftarLokasi, skemaOptions, tukOptions }: EditPeriodeProps) {
     const [awal] = useState<PeriodeFormData>(() => ({
         nama: periode.nama,
         tanggal_buka: periode.tanggal_buka,
@@ -154,6 +155,7 @@ export default function EditPeriode({ periode, skemaTerpakai, pendaftarLokasi, s
                     skemaOptions={skemaOptions}
                     tukOptions={tukOptions}
                     skemaTerkunci={skemaTerpakai}
+                    identitasTerkunci={sudahDibuka}
                     pendaftarLokasi={pendaftarLokasi}
                     onSubmit={submit}
                     submitLabel="Simpan perubahan"
