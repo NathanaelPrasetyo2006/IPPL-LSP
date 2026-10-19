@@ -20,20 +20,14 @@ class TukRequest extends FormRequest
         $tuk = $this->route('tuk');
 
         return [
-            'kode' => [
+            'nama' => [
                 'required',
                 'string',
-                'max:50',
-                // Kode milik TUK yang sudah dihapus boleh dipakai lagi.
-                Rule::unique('tuk', 'kode')->whereNull('deleted_at')->ignore($tuk?->id_tuk, 'id_tuk'),
+                'max:255',
+                // Nama menjadi pembeda antar lokasi; nama milik TUK yang sudah dihapus boleh dipakai lagi.
+                Rule::unique('tuk', 'nama')->whereNull('deleted_at')->ignore($tuk?->id_tuk, 'id_tuk'),
             ],
-            'nama' => ['required', 'string', 'max:255'],
-            'jenis' => ['required', Rule::in(array_keys(Tuk::JENIS))],
-            'alamat' => ['required', 'string', 'max:255'],
-            'kota' => ['required', 'string', 'max:100'],
-            'penanggung_jawab' => ['nullable', 'string', 'max:255'],
-            'telepon' => ['nullable', 'string', 'max:30'],
-            'status' => ['required', Rule::in(array_keys(Tuk::STATUS))],
+            'alamat' => ['required', 'string', 'max:1000'],
         ];
     }
 
@@ -45,10 +39,8 @@ class TukRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'kode' => 'kode TUK',
-            'nama' => 'nama TUK',
-            'jenis' => 'jenis TUK',
-            'penanggung_jawab' => 'penanggung jawab',
+            'nama' => 'nama lokasi',
+            'alamat' => 'detail alamat',
         ];
     }
 
@@ -60,7 +52,7 @@ class TukRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'kode.unique' => 'Kode TUK :input sudah terdaftar.',
+            'nama.unique' => 'Lokasi TUK :input sudah terdaftar.',
         ];
     }
 
@@ -69,7 +61,7 @@ class TukRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        foreach (['kode', 'nama', 'alamat', 'kota', 'penanggung_jawab', 'telepon'] as $field) {
+        foreach (['nama', 'alamat'] as $field) {
             if (is_string($this->input($field))) {
                 $this->merge([$field => trim($this->input($field))]);
             }

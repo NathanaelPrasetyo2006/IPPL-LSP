@@ -1,6 +1,6 @@
 import TukForm from '@/components/master/tuk-form';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type TukOptions } from '@/types';
+import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -19,16 +19,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function CreateTuk({ options }: { options: TukOptions }) {
+export default function CreateTuk() {
     const { data, setData, post, errors, processing } = useForm({
-        kode: '',
         nama: '',
-        jenis: '',
         alamat: '',
-        kota: '',
-        penanggung_jawab: '',
-        telepon: '',
-        status: 'aktif',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -47,15 +41,7 @@ export default function CreateTuk({ options }: { options: TukOptions }) {
                     <p className="text-muted-foreground mt-1 text-sm">Daftarkan Tempat Uji Kompetensi baru ke dalam master data.</p>
                 </div>
 
-                <TukForm
-                    data={data}
-                    setData={setData}
-                    errors={errors}
-                    processing={processing}
-                    options={options}
-                    onSubmit={submit}
-                    submitLabel="Simpan"
-                />
+                <TukForm data={data} setData={setData} errors={errors} processing={processing} onSubmit={submit} submitLabel="Simpan" />
             </div>
         </AppLayout>
     );

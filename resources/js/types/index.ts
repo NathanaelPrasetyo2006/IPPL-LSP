@@ -89,19 +89,8 @@ export interface User {
 
 export interface Tuk {
     id_tuk: number;
-    kode: string;
     nama: string;
-    jenis: string;
     alamat: string;
-    kota: string;
-    penanggung_jawab: string | null;
-    telepon: string | null;
-    status: string;
-}
-
-export interface TukOptions {
-    jenis: Record<string, string>;
-    status: Record<string, string>;
 }
 
 export interface AsesorAccount {

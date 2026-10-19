@@ -18,11 +18,6 @@ class TukController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->query('search', ''));
-        $status = (string) $request->query('status', '');
-
-        if (! array_key_exists($status, Tuk::STATUS)) {
-            $status = '';
-        }
 
         $tuk = Tuk::query()
             ->when($search !== '', function ($query) use ($search) {
@@ -30,24 +25,17 @@ class TukController extends Controller
                 $keyword = '%'.mb_strtolower($search).'%';
 
                 $query->where(function ($query) use ($keyword) {
-                    $query->whereRaw('lower(kode) like ?', [$keyword])
-                        ->orWhereRaw('lower(nama) like ?', [$keyword])
-                        ->orWhereRaw('lower(kota) like ?', [$keyword]);
+                    $query->whereRaw('lower(nama) like ?', [$keyword])
+                        ->orWhereRaw('lower(alamat) like ?', [$keyword]);
                 });
             })
-            ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->orderBy('kode')
+            ->orderBy('nama')
             ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('master/tuk/index', [
             'tuk' => $tuk,
-            'filters' => ['search' => $search, 'status' => $status],
-            'stats' => [
-                'total_tuk' => Tuk::count(),
-                'total_kota' => Tuk::query()->distinct()->count('kota'),
-                'tuk_aktif' => Tuk::query()->where('status', 'aktif')->count(),
-            ],
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -56,9 +44,7 @@ class TukController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('master/tuk/create', [
-            'options' => $this->options(),
-        ]);
+        return Inertia::render('master/tuk/create');
     }
 
     /**
@@ -78,8 +64,7 @@ class TukController extends Controller
     public function edit(Tuk $tuk): Response
     {
         return Inertia::render('master/tuk/edit', [
-            'tuk' => $tuk->only(['id_tuk', 'kode', 'nama', 'jenis', 'alamat', 'kota', 'penanggung_jawab', 'telepon', 'status']),
-            'options' => $this->options(),
+            'tuk' => $tuk->only(['id_tuk', 'nama', 'alamat']),
         ]);
     }
 
@@ -103,18 +88,5 @@ class TukController extends Controller
 
         return to_route('master.tuk.index')
             ->with('success', 'Lokasi TUK berhasil dihapus.');
-    }
-
-    /**
-     * Pilihan dropdown untuk form tambah/ubah.
-     *
-     * @return array<string, array<string, string>>
-     */
-    private function options(): array
-    {
-        return [
-            'jenis' => Tuk::JENIS,
-            'status' => Tuk::STATUS,
-        ];
     }
 }

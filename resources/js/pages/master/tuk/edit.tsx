@@ -1,6 +1,6 @@
 import TukForm from '@/components/master/tuk-form';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Tuk, type TukOptions } from '@/types';
+import { type BreadcrumbItem, type Tuk } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -19,16 +19,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditTuk({ tuk, options }: { tuk: Tuk; options: TukOptions }) {
+export default function EditTuk({ tuk }: { tuk: Tuk }) {
     const { data, setData, put, errors, processing } = useForm({
-        kode: tuk.kode,
         nama: tuk.nama,
-        jenis: tuk.jenis,
         alamat: tuk.alamat,
-        kota: tuk.kota,
-        penanggung_jawab: tuk.penanggung_jawab ?? '',
-        telepon: tuk.telepon ?? '',
-        status: tuk.status,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -49,15 +43,7 @@ export default function EditTuk({ tuk, options }: { tuk: Tuk; options: TukOption
                     </p>
                 </div>
 
-                <TukForm
-                    data={data}
-                    setData={setData}
-                    errors={errors}
-                    processing={processing}
-                    options={options}
-                    onSubmit={submit}
-                    submitLabel="Simpan perubahan"
-                />
+                <TukForm data={data} setData={setData} errors={errors} processing={processing} onSubmit={submit} submitLabel="Simpan perubahan" />
             </div>
         </AppLayout>
     );
