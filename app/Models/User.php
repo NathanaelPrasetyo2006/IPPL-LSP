@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\TujuanOtp;
 use App\Enums\UserRole;
-use App\Notifications\VerifikasiEmailAsesi;
+use App\Support\KodeVerifikasi;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -70,7 +71,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Pemilik akun sudah membuktikan email-nya (lewat link verifikasi atau reset password).
+     * Pemilik akun sudah membuktikan email-nya (kode verifikasi, link aktivasi asesor, atau reset password).
      */
     public function isVerified(): bool
     {
@@ -86,11 +87,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Kirim email verifikasi berbahasa Indonesia.
+     * Verifikasi email memakai kode OTP, termasuk saat dipicu event Registered bawaan Laravel.
      */
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new VerifikasiEmailAsesi);
+        KodeVerifikasi::kirim($this, TujuanOtp::VerifikasiEmail);
     }
 
     /**

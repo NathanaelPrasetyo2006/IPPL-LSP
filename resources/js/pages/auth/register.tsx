@@ -105,7 +105,7 @@ export default function Register() {
                     />
 
                     <p className="text-muted-foreground text-xs">
-                        Gunakan email aktif. Link verifikasi, hasil verifikasi berkas, dan jadwal asesmen dikirim ke email ini.
+                        Gunakan email aktif. Kode verifikasi, hasil verifikasi berkas, dan jadwal asesmen dikirim ke email ini.
                     </p>
 
                     <InputError message={errors.email} />

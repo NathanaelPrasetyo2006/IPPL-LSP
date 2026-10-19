@@ -4,14 +4,13 @@ use App\Http\Controllers\Auth\AktivasiAkunController;
 use App\Http\Controllers\Auth\AsesorVerificationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
-use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\FirstPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PasswordResetOtpController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\VerifikasiEmailController;
 use Illuminate\Support\Facades\Route;
 
 // Link aktivasi akun asesor dari email. Tidak dibatasi guest karena bisa saja dibuka
@@ -59,6 +58,16 @@ Route::middleware('guest')->group(function () {
     Route::post('forgot-password/{role}/password-baru', [NewPasswordController::class, 'store'])
         ->name('password.store');
 
+    // Verifikasi email calon asesi dengan kode OTP, setelah registrasi atau saat login sebelum terverifikasi.
+    Route::get('verifikasi-email', [VerifikasiEmailController::class, 'show'])
+        ->name('verifikasi-email.show');
+
+    Route::post('verifikasi-email', [VerifikasiEmailController::class, 'verifikasi'])
+        ->name('verifikasi-email.verify');
+
+    Route::post('verifikasi-email/kirim-ulang', [VerifikasiEmailController::class, 'kirimUlang'])
+        ->name('verifikasi-email.resend');
+
     // Aktivasi ulang akun asesi nonaktif, dimulai dari login atau registrasi.
     Route::get('aktivasi-akun', [AktivasiAkunController::class, 'show'])
         ->name('aktivasi.show');
@@ -77,16 +86,9 @@ Route::middleware('auth')->group(function () {
     Route::post('first-password', [FirstPasswordController::class, 'update'])
         ->name('password.first-change.update');
 
+    // Tujuan middleware `verified`; sesi yang belum terverifikasi dialihkan ke halaman kode OTP.
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
-
-    Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
-        ->middleware('throttle:6,1')
-        ->name('verification.send');
 
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');

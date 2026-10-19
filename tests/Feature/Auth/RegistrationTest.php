@@ -1,8 +1,9 @@
 <?php
 
+use App\Enums\TujuanOtp;
 use App\Enums\UserRole;
 use App\Models\User;
-use App\Notifications\VerifikasiEmailAsesi;
+use App\Notifications\KodeOtpNotification;
 use Illuminate\Support\Facades\Notification;
 
 function dataRegistrasi(array $override = []): array
@@ -26,11 +27,12 @@ test('registration screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('calon asesi registers with a profile and must verify their email', function () {
+test('calon asesi registers with a profile and must verify their email with a code first', function () {
     $response = $this->post('/register', dataRegistrasi());
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('verification.notice', absolute: false));
+    // Akun belum bisa dipakai sebelum kode verifikasi dimasukkan.
+    $this->assertGuest();
+    $response->assertRedirect(route('verifikasi-email.show'));
 
     $user = User::firstWhere('email', 'test@example.com');
 
@@ -40,7 +42,8 @@ test('calon asesi registers with a profile and must verify their email', functio
         ->and($user->dataDiri->no_telp)->toBe('081234567890')
         ->and($user->dataDiri->kode_asesi)->toMatch('/^ASI-\d{4}-\d{5}$/');
 
-    Notification::assertSentTo($user, VerifikasiEmailAsesi::class);
+    Notification::assertSentToTimes($user, KodeOtpNotification::class, 1);
+    Notification::assertSentTo($user, KodeOtpNotification::class, fn (KodeOtpNotification $n) => $n->tujuan === TujuanOtp::VerifikasiEmail);
 });
 
 test('registration requires name, phone, and consent', function () {

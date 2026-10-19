@@ -5,18 +5,28 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Support\Facades\Auth;
 
 class EmailVerificationPromptController extends Controller
 {
     /**
-     * Show the email verification prompt page.
+     * Tujuan middleware `verified`. Akun yang masih login tetapi belum terverifikasi
+     * (mis. sesi lama sebelum verifikasi OTP berlaku) dikeluarkan lalu diarahkan ke halaman kode.
      */
-    public function __invoke(Request $request): Response|RedirectResponse
+    public function __invoke(Request $request): RedirectResponse
     {
-        return $request->user()->hasVerifiedEmail()
-                    ? redirect()->intended(route('dashboard', absolute: false))
-                    : Inertia::render('auth/verify-email', ['status' => $request->session()->get('status')]);
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        VerifikasiEmailController::mulai($request, $user);
+
+        return to_route('verifikasi-email.show');
     }
 }

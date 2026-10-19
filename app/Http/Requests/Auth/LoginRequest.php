@@ -53,8 +53,9 @@ class LoginRequest extends FormRequest
             fn ($query) => $query->whereNull('nonaktif_pada'),
         ];
 
-        // Akun asesor baru bisa dipakai setelah email-nya diverifikasi.
-        if ($role === UserRole::Asesor) {
+        // Akun asesor dan asesi baru bisa dipakai setelah email-nya diverifikasi.
+        // Asesi yang belum verifikasi ditangani terpisah lewat akunBelumVerifikasi().
+        if ($role !== UserRole::Admin) {
             $credentials[] = fn ($query) => $query->whereNotNull('email_verified_at');
         }
 
@@ -83,6 +84,30 @@ class LoginRequest extends FormRequest
             ->where('email', $this->string('email')->lower()->toString())
             ->where('role', $role)
             ->whereNotNull('nonaktif_pada')
+            ->first();
+
+        return $user && Hash::check($this->string('password')->toString(), $user->password) ? $user : null;
+    }
+
+    /**
+     * Akun asesi dengan email & password benar yang emailnya belum diverifikasi,
+     * untuk diarahkan ke halaman kode verifikasi.
+     *
+     * @throws ValidationException
+     */
+    public function akunBelumVerifikasi(UserRole $role): ?User
+    {
+        if ($role !== UserRole::Asesi) {
+            return null;
+        }
+
+        $this->ensureIsNotRateLimited();
+
+        $user = User::query()
+            ->where('email', $this->string('email')->lower()->toString())
+            ->where('role', $role)
+            ->whereNull('email_verified_at')
+            ->whereNull('nonaktif_pada')
             ->first();
 
         return $user && Hash::check($this->string('password')->toString(), $user->password) ? $user : null;

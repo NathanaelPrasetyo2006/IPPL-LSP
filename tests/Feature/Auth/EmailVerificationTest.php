@@ -1,46 +1,80 @@
 <?php
 
+use App\Enums\TujuanOtp;
 use App\Models\User;
+use App\Notifications\KodeOtpNotification;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Notification;
 
-test('email verification screen can be rendered', function () {
+beforeEach(fn () => Notification::fake());
+
+function kodeVerifikasiEmail(User $user): string
+{
+    $kode = null;
+
+    Notification::assertSentTo($user, KodeOtpNotification::class, function (KodeOtpNotification $notifikasi) use (&$kode) {
+        $kode = $notifikasi->kode;
+
+        return $notifikasi->tujuan === TujuanOtp::VerifikasiEmail;
+    });
+
+    return $kode;
+}
+
+test('an unverified asesi cannot log in and is sent to the verification code page', function () {
     $user = User::factory()->unverified()->create();
 
-    $response = $this->actingAs($user)->get('/verify-email');
+    $this->post('/login/asesi', ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect(route('verifikasi-email.show'));
 
-    $response->assertStatus(200);
+    $this->assertGuest();
+    kodeVerifikasiEmail($user);
+
+    $this->get('/verifikasi-email')->assertInertia(fn ($page) => $page->component('auth/verifikasi-email'));
 });
 
-test('email can be verified', function () {
+test('a wrong password on an unverified account is just a failed login', function () {
     $user = User::factory()->unverified()->create();
 
-    Event::fake();
+    $this->post('/login/asesi', ['email' => $user->email, 'password' => 'salah'])->assertSessionHasErrors('email');
 
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id_user, 'hash' => sha1($user->email)]
-    );
+    $this->get('/verifikasi-email')->assertRedirect(route('login.role', 'asesi'));
+    Notification::assertNothingSent();
+});
 
-    $response = $this->actingAs($user)->get($verificationUrl);
+test('the correct code verifies the email and logs the asesi in', function () {
+    Event::fake([Verified::class]);
+    $user = User::factory()->unverified()->create();
 
-    Event::assertDispatched(Verified::class);
+    $this->post('/login/asesi', ['email' => $user->email, 'password' => 'password']);
+
+    $this->post('/verifikasi-email', ['kode' => '000000'])->assertSessionHasErrors('kode');
+    $this->assertGuest();
+
+    $this->post('/verifikasi-email', ['kode' => kodeVerifikasiEmail($user)])->assertRedirect(route('dashboard'));
+
+    $this->assertAuthenticatedAs($user);
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+    Event::assertDispatched(Verified::class);
 });
 
-test('email is not verified with invalid hash', function () {
+test('verification status is read from the database, not from the browser session', function () {
     $user = User::factory()->unverified()->create();
 
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id_user, 'hash' => sha1('wrong-email')]
-    );
+    // Sesi lama yang masih login tetapi belum terverifikasi dikeluarkan dan diarahkan ke halaman kode.
+    $this->actingAs($user)->get('/dashboard')->assertRedirect(route('verification.notice'));
+    $this->get('/verify-email')->assertRedirect(route('verifikasi-email.show'));
+    $this->assertGuest();
 
-    $this->actingAs($user)->get($verificationUrl);
+    // Setelah terverifikasi (di mana pun), login berikutnya langsung berhasil.
+    $user->markEmailAsVerified();
 
-    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+    $this->post('/login/asesi', ['email' => $user->email, 'password' => 'password'])->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticatedAs($user);
+});
+
+test('the verification page cannot be opened without a pending account', function () {
+    $this->get('/verifikasi-email')->assertRedirect(route('login.role', 'asesi'));
+    $this->post('/verifikasi-email', ['kode' => '123456'])->assertRedirect(route('login.role', 'asesi'));
 });

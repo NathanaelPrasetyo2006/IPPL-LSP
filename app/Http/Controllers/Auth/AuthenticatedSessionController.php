@@ -49,6 +49,12 @@ class AuthenticatedSessionController extends Controller
             return to_route('aktivasi.show');
         }
 
+        if ($belumVerifikasi = $request->akunBelumVerifikasi($role)) {
+            VerifikasiEmailController::mulai($request, $belumVerifikasi);
+
+            return to_route('verifikasi-email.show')->with('status', 'Email Anda belum diverifikasi. Kode verifikasi sudah dikirim ke email Anda.');
+        }
+
         $request->authenticate($role);
 
         $request->session()->regenerate();

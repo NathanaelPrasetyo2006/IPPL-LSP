@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -29,8 +28,8 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Buat akun calon asesi beserta profil awalnya, lalu kirim link verifikasi email.
-     * Data diri lengkap (APL-01) diisi setelah email terverifikasi.
+     * Buat akun calon asesi beserta profil awalnya, lalu kirim kode verifikasi ke email.
+     * Akun baru bisa dipakai setelah kodenya dimasukkan; data diri lengkap (APL-01) diisi sesudahnya.
      *
      * @throws ValidationException
      */
@@ -90,11 +89,12 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        // Listener bawaan Laravel mengirim email verifikasi untuk event ini.
+        // Listener bawaan Laravel mengirim kode verifikasi (User::sendEmailVerificationNotification) untuk event ini.
         event(new Registered($user));
 
-        Auth::login($user);
+        // Belum login: akun masuk ke sistem setelah kode verifikasi benar.
+        VerifikasiEmailController::mulai($request, $user);
 
-        return to_route('verification.notice');
+        return to_route('verifikasi-email.show');
     }
 }

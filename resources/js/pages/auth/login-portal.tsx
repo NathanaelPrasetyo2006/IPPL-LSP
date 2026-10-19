@@ -1,6 +1,5 @@
 import RoleAvatar from '@/components/auth/role-avatar';
 import { ROLE_ORDER, ROLES } from '@/components/auth/roles';
-import TextLink from '@/components/text-link';
 import { buttonVariants } from '@/components/ui/button';
 import { AuthBrand } from '@/layouts/auth/auth-simple-layout';
 import { cn } from '@/lib/utils';
@@ -55,13 +54,6 @@ export default function LoginPortal() {
                         );
                     })}
                 </div>
-
-                <p className="text-muted-foreground mt-8 text-center text-sm">
-                    Calon asesi dan belum punya akun?{' '}
-                    <TextLink href={route('register')} className="font-medium">
-                        Daftar di sini
-                    </TextLink>
-                </p>
             </div>
 
             <p className="text-muted-foreground mt-10 text-center text-xs">
