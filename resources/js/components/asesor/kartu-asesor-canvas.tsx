@@ -1,4 +1,5 @@
 import { type KartuAsesor } from '@/types';
+import QRCode from 'qrcode';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 /** Ukuran kartu ID standar CR80 (85,6 × 54 mm) pada resolusi cetak ±300 dpi. */
@@ -48,20 +49,35 @@ function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     ctx.roundRect(x, y, w, h, r);
 }
 
-/** Pecah teks menjadi beberapa baris agar muat di lebar tertentu; baris terakhir dipotong dengan elipsis. */
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
-    const words = text.split(/\s+/).filter(Boolean);
+/**
+ * Wrap text: teks turun ke baris berikutnya selebar maxWidth, tanpa batas baris dan tanpa dipotong.
+ * Kata yang lebih panjang dari satu baris (mis. nomor tanpa spasi) dipecah per huruf.
+ */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
     const lines: string[] = [];
     let current = '';
 
-    for (const word of words) {
+    for (const word of text.split(/\s+/).filter(Boolean)) {
         const candidate = current ? `${current} ${word}` : word;
 
-        if (ctx.measureText(candidate).width <= maxWidth || !current) {
+        if (ctx.measureText(candidate).width <= maxWidth) {
             current = candidate;
-        } else {
+            continue;
+        }
+
+        if (current) {
             lines.push(current);
-            current = word;
+        }
+
+        current = '';
+
+        for (const huruf of word) {
+            if (current && ctx.measureText(current + huruf).width > maxWidth) {
+                lines.push(current);
+                current = huruf;
+            } else {
+                current += huruf;
+            }
         }
     }
 
@@ -69,20 +85,32 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
         lines.push(current);
     }
 
-    if (lines.length <= maxLines) {
-        return lines;
+    return lines.length > 0 ? lines : ['-'];
+}
+
+/**
+ * QR berisi kode asesor di atas pelat putih, dengan zona tenang 2 modul supaya mudah dipindai.
+ * Modul digambar sebagai kotak biasa sehingga tetap tajam saat kartu dicetak.
+ */
+function drawQr(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
+    const { modules } = QRCode.create(text, { errorCorrectionLevel: 'M' });
+    const tepi = 2;
+    const modul = Math.floor(size / (modules.size + tepi * 2));
+    const offset = (size - modul * modules.size) / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundedRect(ctx, x, y, size, size, 12);
+    ctx.fill();
+
+    ctx.fillStyle = WARNA.teks;
+
+    for (let row = 0; row < modules.size; row++) {
+        for (let col = 0; col < modules.size; col++) {
+            if (modules.get(row, col)) {
+                ctx.fillRect(x + offset + col * modul, y + offset + row * modul, modul, modul);
+            }
+        }
     }
-
-    const visible = lines.slice(0, maxLines);
-    let last = `${visible[maxLines - 1]} ${lines.slice(maxLines).join(' ')}`;
-
-    while (ctx.measureText(`${last}…`).width > maxWidth && last.length > 0) {
-        last = last.slice(0, -1);
-    }
-
-    visible[maxLines - 1] = `${last.trimEnd()}…`;
-
-    return visible;
 }
 
 /** Gambar foto mengisi kotak tanpa distorsi (seperti object-fit: cover). */
@@ -152,8 +180,16 @@ async function drawKartu(canvas: HTMLCanvasElement, { asesor, lembaga, diterbitk
 
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#ffffff';
-    ctx.font = `600 42px ${FONT}`;
-    ctx.fillText(wrapText(ctx, lembaga.toUpperCase(), W - 220, 1)[0] ?? '', 156, 80);
+    // Nama lembaga yang panjang diperkecil hurufnya, tidak dipotong.
+    let ukuranLembaga = 42;
+    ctx.font = `600 ${ukuranLembaga}px ${FONT}`;
+
+    while (ctx.measureText(lembaga.toUpperCase()).width > W - 220 && ukuranLembaga > 20) {
+        ukuranLembaga -= 1;
+        ctx.font = `600 ${ukuranLembaga}px ${FONT}`;
+    }
+
+    ctx.fillText(lembaga.toUpperCase(), 156, 80);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.font = `500 24px ${FONT}`;
@@ -220,33 +256,78 @@ async function drawKartu(canvas: HTMLCanvasElement, { asesor, lembaga, diterbitk
         ctx.letterSpacing = '0px';
     }
 
+    // QR kode asesor di pojok kanan bawah, tepat di atas footer.
+    const qrSize = 152;
+    const qrX = W - 56 - qrSize;
+    const qrY = H - 76 - 16 - qrSize;
+
+    if (asesor.kode_asesor) {
+        drawQr(ctx, asesor.kode_asesor, qrX, qrY, qrSize);
+    }
+
     // Data asesor.
     const tx = 330;
-    const maxText = W - tx - 56;
+    const maxNama = W - tx - 56;
+    // Baris data sejajar dengan QR, jadi lebarnya berhenti sebelum QR.
+    const maxBaris = qrX - 24 - tx;
+    // Baris terakhir harus berakhir di atas garis footer.
+    const batasBawah = H - 76 - 14;
 
-    ctx.fillStyle = WARNA.teks;
-    ctx.font = `600 40px ${FONT}`;
-    const namaLines = wrapText(ctx, asesor.nama, maxText, 2);
-    namaLines.forEach((line, i) => ctx.fillText(line, tx, 268 + i * 46));
+    const dataBaris = [
+        { label: 'No. Registrasi / MET', nilai: asesor.no_reg, warna: WARNA.teks },
+        { label: 'Bidang Keahlian', nilai: asesor.bidang_keahlian ?? '-', warna: WARNA.teks },
+        { label: 'Berlaku s.d.', nilai: asesor.masa_berlaku_sertifikat ?? '-', warna: asesor.kedaluwarsa ? WARNA.bahaya : WARNA.teks },
+    ];
 
-    // Nama dua baris menggeser baris data ke bawah; ruang di atas footer sudah diperhitungkan.
-    let y = 268 + namaLines.length * 46;
+    // Teks panjang turun ke baris berikutnya, tidak dipotong. Bila semuanya tidak muat di atas footer,
+    // ukuran huruf seluruh blok diperkecil bertahap sampai muat.
+    const susun = (skala: number) => {
+        ctx.font = `600 ${Math.round(40 * skala)}px ${FONT}`;
+        let nama = wrapText(ctx, asesor.nama, maxNama);
 
-    const baris = (label: string, value: string, warna: string = WARNA.teks) => {
-        ctx.fillStyle = WARNA.teksRedup;
-        ctx.font = `500 19px ${FONT}`;
-        ctx.fillText(label.toUpperCase(), tx, y);
+        // Nama yang sangat panjang bisa turun sampai sejajar QR; saat itu lebarnya ikut dibatasi.
+        if (268 + (nama.length - 1) * 46 * skala > qrY - 8) {
+            nama = wrapText(ctx, asesor.nama, maxBaris);
+        }
 
-        ctx.fillStyle = warna;
-        ctx.font = `600 27px ${FONT}`;
-        ctx.fillText(wrapText(ctx, value, maxText, 1)[0] ?? '-', tx, y + 34);
+        ctx.font = `600 ${Math.round(27 * skala)}px ${FONT}`;
+        const isi = dataBaris.map((baris) => wrapText(ctx, baris.nilai, maxBaris));
 
-        y += 72;
+        let y = 268 + nama.length * 46 * skala;
+        let akhir = y;
+
+        const posisi = isi.map((lines) => {
+            const label = y;
+            const nilai = y + 34 * skala;
+
+            akhir = nilai + (lines.length - 1) * 32 * skala;
+            y = akhir + 38 * skala;
+
+            return { label, nilai };
+        });
+
+        return { skala, nama, isi, posisi, muat: akhir <= batasBawah };
     };
 
-    baris('No. Registrasi / MET', asesor.no_reg);
-    baris('Bidang Keahlian', asesor.bidang_keahlian ?? '-');
-    baris('Berlaku s.d.', asesor.masa_berlaku_sertifikat ?? '-', asesor.kedaluwarsa ? WARNA.bahaya : WARNA.teks);
+    let tata = susun(1);
+
+    for (let skala = 0.95; !tata.muat && skala >= 0.6; skala -= 0.05) {
+        tata = susun(skala);
+    }
+
+    ctx.fillStyle = WARNA.teks;
+    ctx.font = `600 ${Math.round(40 * tata.skala)}px ${FONT}`;
+    tata.nama.forEach((line, i) => ctx.fillText(line, tx, 268 + i * 46 * tata.skala));
+
+    dataBaris.forEach((baris, i) => {
+        ctx.fillStyle = WARNA.teksRedup;
+        ctx.font = `500 ${Math.round(19 * tata.skala)}px ${FONT}`;
+        ctx.fillText(baris.label.toUpperCase(), tx, tata.posisi[i].label);
+
+        ctx.fillStyle = baris.warna;
+        ctx.font = `600 ${Math.round(27 * tata.skala)}px ${FONT}`;
+        tata.isi[i].forEach((line, j) => ctx.fillText(line, tx, tata.posisi[i].nilai + j * 32 * tata.skala));
+    });
 
     // Footer.
     ctx.fillStyle = WARNA.garis;
@@ -256,16 +337,32 @@ async function drawKartu(canvas: HTMLCanvasElement, { asesor, lembaga, diterbitk
     ctx.font = `500 19px ${FONT}`;
     ctx.fillText(`Diterbitkan ${diterbitkan}`, 56, H - 32);
 
-    ctx.textAlign = 'right';
-    ctx.fillText(wrapText(ctx, asesor.instansi ?? '', 440, 1)[0] ?? '', W - 56, H - 32);
-    ctx.textAlign = 'left';
+    // Instansi panjang turun ke baris berikutnya; hurufnya diperkecil bila lebih dari dua baris.
+    if (asesor.instansi) {
+        let ukuran = 19;
+        let lines = wrapText(ctx, asesor.instansi, 440);
+
+        while (lines.length > 2 && ukuran > 14) {
+            ukuran -= 1;
+            ctx.font = `500 ${ukuran}px ${FONT}`;
+            lines = wrapText(ctx, asesor.instansi, 440);
+        }
+
+        // Baris-baris instansi berpusat pada garis teks "Diterbitkan".
+        const tinggiBaris = ukuran * 1.25;
+        const awal = H - 32 - ((lines.length - 1) * tinggiBaris) / 2;
+
+        ctx.textAlign = 'right';
+        lines.forEach((line, i) => ctx.fillText(line, W - 56, awal + i * tinggiBaris));
+        ctx.textAlign = 'left';
+    }
 
     ctx.restore();
 }
 
 /**
  * Kartu Tanda Asesor yang digambar di <canvas>, sehingga bisa langsung diunduh
- * sebagai PNG resolusi cetak tanpa library tambahan di server maupun browser.
+ * sebagai PNG resolusi cetak tanpa proses di server.
  */
 const KartuAsesorCanvas = forwardRef<KartuAsesorCanvasHandle, KartuAsesorCanvasProps>(function KartuAsesorCanvas(props, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -306,7 +403,7 @@ const KartuAsesorCanvas = forwardRef<KartuAsesorCanvasHandle, KartuAsesorCanvasP
             height={KARTU_HEIGHT}
             className={props.className}
             role="img"
-            aria-label={`Kartu Tanda Asesor ${asesor.nama}, no. registrasi ${asesor.no_reg}`}
+            aria-label={`Kartu Tanda Asesor ${asesor.nama}, kode asesor ${asesor.kode_asesor ?? '-'}, no. registrasi ${asesor.no_reg}`}
         />
     );
 });
