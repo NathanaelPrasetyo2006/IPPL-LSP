@@ -171,7 +171,7 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Cari nama, no. reg, atau email..."
+                                placeholder="Cari nama, kode, no. MET, atau email..."
                                 className="pl-9"
                                 aria-label="Cari akun asesor"
                             />
@@ -212,12 +212,17 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
                                                     {getInitials(item.nama)}
                                                 </span>
 
-                                                <Link
-                                                    href={route('master.asesor.edit', item.id_asesor)}
-                                                    className="font-medium text-amber-700 hover:underline dark:text-amber-500"
-                                                >
-                                                    {item.nama}
-                                                </Link>
+                                                <div className="min-w-0">
+                                                    <Link
+                                                        href={route('master.asesor.edit', item.id_asesor)}
+                                                        className="font-medium text-amber-700 hover:underline dark:text-amber-500"
+                                                    >
+                                                        {item.nama}
+                                                    </Link>
+                                                    {item.kode_asesor && (
+                                                        <p className="text-muted-foreground font-mono text-xs">{item.kode_asesor}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </TableCell>
 

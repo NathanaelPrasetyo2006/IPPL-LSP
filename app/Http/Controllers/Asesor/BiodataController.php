@@ -138,6 +138,7 @@ class BiodataController extends Controller
     private function ringkasan(Asesor $asesor): array
     {
         return [
+            'kode_asesor' => $asesor->kode_asesor,
             'nama' => $asesor->nama,
             'no_reg' => $asesor->no_reg,
             'lengkap' => $asesor->biodataLengkap(),

@@ -49,6 +49,7 @@ test('asesor can open the biodata form', function () {
         ->assertInertia(fn ($page) => $page
             ->component('asesor/biodata')
             ->where('asesor.no_reg', $this->asesor->no_reg)
+            ->where('asesor.kode_asesor', $this->asesor->fresh()->kode_asesor)
             ->where('asesor.lengkap', false));
 });
 

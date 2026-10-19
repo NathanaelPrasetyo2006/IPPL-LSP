@@ -157,10 +157,15 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                         title="Identitas Asesor"
                         description="Nama dan nomor registrasi mengikuti sertifikat. Hubungi admin LSP bila ada yang keliru."
                     >
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-6 md:grid-cols-3">
                             <div className="grid gap-2">
                                 <Label htmlFor="nama">Nama lengkap</Label>
                                 <Input id="nama" value={asesor.nama} disabled readOnly />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="kode_asesor">Kode asesor</Label>
+                                <Input id="kode_asesor" value={asesor.kode_asesor ?? '-'} disabled readOnly className="font-mono" />
                             </div>
 
                             <div className="grid gap-2">

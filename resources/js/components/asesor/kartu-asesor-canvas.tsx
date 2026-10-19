@@ -197,7 +197,7 @@ async function drawKartu(canvas: HTMLCanvasElement, { asesor, lembaga, diterbitk
         ctx.textAlign = 'left';
     }
 
-    // Pita "tidak berlaku" di bawah foto bila sertifikat asesor sudah lewat masa berlakunya.
+    // Pita "tidak berlaku" di atas bagian bawah foto bila sertifikat asesor sudah lewat masa berlakunya.
     if (asesor.kedaluwarsa) {
         ctx.fillStyle = 'rgba(220, 38, 38, 0.92)';
         ctx.fillRect(fx, fy + fh - 54, fw, 54);
@@ -208,6 +208,17 @@ async function drawKartu(canvas: HTMLCanvasElement, { asesor, lembaga, diterbitk
         ctx.textAlign = 'left';
     }
     ctx.restore();
+
+    // Kode asesor di bawah foto, seperti nomor pada kartu identitas.
+    if (asesor.kode_asesor) {
+        ctx.fillStyle = WARNA.teks;
+        ctx.font = `600 24px ${FONT}`;
+        ctx.letterSpacing = '2px';
+        ctx.textAlign = 'center';
+        ctx.fillText(asesor.kode_asesor, fx + fw / 2, fy + fh + 44);
+        ctx.textAlign = 'left';
+        ctx.letterSpacing = '0px';
+    }
 
     // Data asesor.
     const tx = 330;

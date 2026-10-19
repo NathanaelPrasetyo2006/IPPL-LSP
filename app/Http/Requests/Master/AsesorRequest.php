@@ -73,7 +73,8 @@ class AsesorRequest extends FormRequest
     {
         $this->merge([
             'nama' => is_string($this->nama) ? trim($this->nama) : $this->nama,
-            'no_reg' => is_string($this->no_reg) ? trim($this->no_reg) : $this->no_reg,
+            // Huruf besar semua supaya keunikan No. MET tidak lolos hanya karena beda kapitalisasi.
+            'no_reg' => is_string($this->no_reg) ? mb_strtoupper(trim($this->no_reg)) : $this->no_reg,
             'email' => is_string($this->email) ? mb_strtolower(trim($this->email)) : $this->email,
         ]);
     }

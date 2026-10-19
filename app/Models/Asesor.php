@@ -48,6 +48,16 @@ class Asesor extends Model
 
     protected $table = 'asesor';
 
+    protected static function booted(): void
+    {
+        // Kode asesor diturunkan dari id supaya pasti unik tanpa perlu mengunci tabel.
+        static::created(function (Asesor $asesor) {
+            $asesor->forceFill([
+                'kode_asesor' => sprintf('ASR-%s-%05d', now()->year, $asesor->id_asesor),
+            ])->saveQuietly();
+        });
+    }
+
     protected $primaryKey = 'id_asesor';
 
     public $timestamps = false;

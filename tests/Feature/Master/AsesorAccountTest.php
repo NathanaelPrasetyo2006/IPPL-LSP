@@ -114,3 +114,29 @@ test('correcting the email of an unverified asesor resends the verification link
     expect($user->email)->toBe('benar@example.com');
     Notification::assertSentTo($user, AsesorVerifikasiAkun::class);
 });
+
+test('every new asesor gets a unique automatic kode asesor', function () {
+    foreach (['budi@example.com' => 'MET.001.2026', 'sari@example.com' => 'MET.002.2026'] as $email => $noReg) {
+        $this->actingAs($this->admin)->post('/master/asesor', ['nama' => 'Asesor', 'no_reg' => $noReg, 'email' => $email]);
+    }
+
+    $kode = Asesor::query()->orderBy('id_asesor')->pluck('kode_asesor');
+
+    expect($kode)->toHaveCount(2)
+        ->and($kode->unique())->toHaveCount(2)
+        ->and($kode[0])->toMatch('/^ASR-\d{4}-\d{5}$/');
+});
+
+test('no. MET must be unique regardless of letter case', function () {
+    $this->actingAs($this->admin)
+        ->post('/master/asesor', ['nama' => 'Budi', 'no_reg' => ' met.001.2026 ', 'email' => 'budi@example.com'])
+        ->assertSessionHasNoErrors();
+
+    expect(Asesor::sole()->no_reg)->toBe('MET.001.2026');
+
+    $this->actingAs($this->admin)
+        ->post('/master/asesor', ['nama' => 'Sari', 'no_reg' => 'MET.001.2026', 'email' => 'sari@example.com'])
+        ->assertSessionHasErrors('no_reg');
+
+    expect(Asesor::count())->toBe(1);
+});

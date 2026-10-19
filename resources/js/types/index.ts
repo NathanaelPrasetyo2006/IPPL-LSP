@@ -96,6 +96,7 @@ export interface Tuk {
 
 export interface AsesorAccount {
     id_asesor: number;
+    kode_asesor: string | null;
     nama: string;
     no_reg: string;
     email: string | null;
@@ -108,6 +109,7 @@ export type AsesorStatus = 'menunggu_verifikasi' | 'password_sementara' | 'aktif
 
 /** Biodata yang diisi sendiri oleh asesor dari portalnya. */
 export interface AsesorBiodata {
+    kode_asesor: string | null;
     nama: string;
     no_reg: string;
     email: string;
@@ -135,6 +137,7 @@ export interface AsesorBiodataOptions {
 
 /** Data yang dicetak pada Kartu Tanda Asesor. */
 export interface KartuAsesor {
+    kode_asesor: string | null;
     nama: string;
     no_reg: string;
     lengkap: boolean;

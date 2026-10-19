@@ -32,6 +32,7 @@ class AsesorController extends Controller
 
                 $query->where(function ($query) use ($keyword) {
                     $query->whereRaw('lower(nama) like ?', [$keyword])
+                        ->orWhereRaw('lower(kode_asesor) like ?', [$keyword])
                         ->orWhereRaw('lower(no_reg) like ?', [$keyword])
                         ->orWhereHas('user', fn ($query) => $query->whereRaw('lower(email) like ?', [$keyword]));
                 });
@@ -41,6 +42,7 @@ class AsesorController extends Controller
             ->withQueryString()
             ->through(fn (Asesor $asesor) => [
                 'id_asesor' => $asesor->id_asesor,
+                'kode_asesor' => $asesor->kode_asesor,
                 'nama' => $asesor->nama,
                 'no_reg' => $asesor->no_reg,
                 'email' => $asesor->user?->email,
