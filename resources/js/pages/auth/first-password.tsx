@@ -43,7 +43,7 @@ export default function FirstPassword({ email, nama }: FirstPasswordProps) {
         <AuthLayout
             className="max-w-md"
             title="Ganti Password Sementara"
-            description="Demi keamanan akun, password sementara dari admin harus diganti sebelum Anda memakai sistem."
+            description="Demi keamanan akun, password sementara wajib diganti. Menu lain baru bisa dibuka setelah password diganti."
         >
             <Head title="Ganti Password Sementara" />
 
@@ -119,13 +119,14 @@ export default function FirstPassword({ email, nama }: FirstPasswordProps) {
             </form>
 
             <div className="mt-6 border-t pt-4 text-center">
+                <p className="text-muted-foreground mb-2 text-xs">Bila keluar sekarang, halaman ini akan muncul lagi saat Anda masuk berikutnya.</p>
                 <Link
                     href={route('logout')}
                     method="post"
                     as="button"
                     className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
                 >
-                    Keluar dan ganti nanti
+                    Keluar
                 </Link>
             </div>
         </AuthLayout>
