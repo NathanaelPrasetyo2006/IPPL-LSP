@@ -1,104 +1,74 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
+import PasswordInput from '@/components/auth/password-input';
 import Requirement from '@/components/auth/password-requirement';
+import RoleBadge from '@/components/auth/role-badge';
+import { ROLES } from '@/components/auth/roles';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { type UserRole } from '@/types';
 
 interface ResetPasswordProps {
-    token: string;
+    role: UserRole;
     email: string;
 }
 
-interface ResetPasswordForm {
-    token: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-    [key: string]: string;
-}
-
-export default function ResetPassword({ token, email }: ResetPasswordProps) {
-    const { data, setData, post, processing, errors, reset } = useForm<ResetPasswordForm>({
-        token: token,
-        email: email,
+export default function ResetPassword({ role, email }: ResetPasswordProps) {
+    const { data, setData, post, processing, errors, reset } = useForm({
         password: '',
         password_confirmation: '',
     });
 
-    const [visible, setVisible] = useState(false);
-
+    const meta = ROLES[role];
     const longEnough = data.password.length >= 8;
     const matches = data.password !== '' && data.password === data.password_confirmation;
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        post(route('password.store'), {
-            onFinish: () => reset('password', 'password_confirmation'),
+
+        post(route('password.store', role), {
+            onError: () => reset('password', 'password_confirmation'),
         });
     };
 
     return (
-        <AuthLayout className="max-w-md" title="Buat Password Baru" description="Masukkan password baru untuk akun Anda.">
-            <Head title="Reset Password" />
+        <AuthLayout
+            title="Buat Password Baru"
+            description={`Kode benar. Buat password baru untuk akun ${email}.`}
+            header={<RoleBadge role={role} caption="Lupa password · 3 dari 3" />}
+        >
+            <Head title={`Password Baru ${meta.label}`} />
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" name="email" autoComplete="email" value={data.email} readOnly className="bg-muted/50" />
-                    <InputError message={errors.email} />
-                </div>
-
-                <div className="grid gap-2 border-t pt-5">
                     <Label htmlFor="password">Password baru</Label>
-
-                    <div className="relative">
-                        <Input
-                            id="password"
-                            type={visible ? 'text' : 'password'}
-                            name="password"
-                            required
-                            autoFocus
-                            autoComplete="new-password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            placeholder="Minimal 8 karakter"
-                            className="pr-10"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => setVisible((current) => !current)}
-                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1"
-                            aria-label={visible ? 'Sembunyikan password' : 'Tampilkan password'}
-                            tabIndex={-1}
-                        >
-                            {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
-
+                    <PasswordInput
+                        id="password"
+                        required
+                        autoFocus
+                        autoComplete="new-password"
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        placeholder="Minimal 8 karakter"
+                    />
                     <InputError message={errors.password} />
                 </div>
 
                 <div className="grid gap-2">
                     <Label htmlFor="password_confirmation">Ulangi password baru</Label>
-
-                    <Input
+                    <PasswordInput
                         id="password_confirmation"
-                        type={visible ? 'text' : 'password'}
-                        name="password_confirmation"
                         required
                         autoComplete="new-password"
                         value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)}
                         placeholder="Ketik ulang password baru"
                     />
-
                     <InputError message={errors.password_confirmation} />
                 </div>
 
@@ -113,12 +83,11 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
                 </Button>
             </form>
 
-            <p className="text-muted-foreground mt-6 border-t pt-4 text-center text-sm">
-                Tautan kedaluwarsa?{' '}
-                <TextLink href={route('login')} className="font-medium">
-                    Kembali ke portal masuk
+            <div className="mt-6 border-t pt-4 text-center text-sm">
+                <TextLink href={route('login.role', role)} className="text-muted-foreground">
+                    Batal dan kembali ke halaman masuk
                 </TextLink>
-            </p>
+            </div>
         </AuthLayout>
     );
 }

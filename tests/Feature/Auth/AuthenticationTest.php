@@ -59,3 +59,28 @@ test('users can logout', function () {
     $this->assertGuest();
     $response->assertRedirect('/');
 });
+
+test('a leftover page of another role is ignored after login instead of ending in 403', function () {
+    $admin = User::factory()->admin()->create();
+
+    // Mis. sesi asesi kedaluwarsa di /sertifikasi pada browser yang sama, lalu admin masuk.
+    $this->get('/sertifikasi')->assertRedirect(route('login'));
+
+    $this->post('/login/admin', ['email' => $admin->email, 'password' => 'password'])
+        ->assertRedirect(route('dashboard', absolute: false));
+});
+
+test('the page requested before login is still opened when the role may access it', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->get('/master/tuk');
+
+    $this->post('/login/admin', ['email' => $admin->email, 'password' => 'password'])
+        ->assertRedirect(route('master.tuk.index'));
+});
+
+test('unverified accounts cannot open the dashboard', function () {
+    $this->actingAs(User::factory()->unverified()->create())
+        ->get('/dashboard')
+        ->assertRedirect(route('verification.notice'));
+});

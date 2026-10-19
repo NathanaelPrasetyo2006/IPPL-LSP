@@ -3,10 +3,12 @@
 namespace App\Http\Requests\Auth;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -44,7 +46,12 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         // Peran ikut dicocokkan, jadi akun asesi tidak bisa masuk lewat portal admin, dst.
-        $credentials = [...$this->only('email', 'password'), 'role' => $role->value];
+        // Akun nonaktif ditangani terpisah lewat akunNonaktif().
+        $credentials = [
+            ...$this->only('email', 'password'),
+            'role' => $role->value,
+            fn ($query) => $query->whereNull('nonaktif_pada'),
+        ];
 
         // Akun asesor baru bisa dipakai setelah email-nya diverifikasi.
         if ($role === UserRole::Asesor) {
@@ -60,6 +67,25 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Akun nonaktif dengan email & password yang benar, untuk diarahkan ke aktivasi ulang.
+     * Password salah tetap diperlakukan seperti login gagal biasa.
+     *
+     * @throws ValidationException
+     */
+    public function akunNonaktif(UserRole $role): ?User
+    {
+        $this->ensureIsNotRateLimited();
+
+        $user = User::query()
+            ->where('email', $this->string('email')->lower()->toString())
+            ->where('role', $role)
+            ->whereNotNull('nonaktif_pada')
+            ->first();
+
+        return $user && Hash::check($this->string('password')->toString(), $user->password) ? $user : null;
     }
 
     /**

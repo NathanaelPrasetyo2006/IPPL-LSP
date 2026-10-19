@@ -1,70 +1,111 @@
 <?php
 
 use App\Models\User;
-use App\Notifications\ResetPasswordNotification as ResetPassword;
+use App\Notifications\KodeOtpNotification;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
-test('reset password link screen can be rendered for each role', function (string $role) {
+beforeEach(fn () => Notification::fake());
+
+/**
+ * Kode OTP terakhir yang dikirim ke akun ini.
+ */
+function kodeOtpTerakhir(User $user): string
+{
+    $kode = null;
+
+    Notification::assertSentTo($user, KodeOtpNotification::class, function (KodeOtpNotification $notifikasi) use (&$kode) {
+        $kode = $notifikasi->kode;
+
+        return true;
+    });
+
+    return $kode;
+}
+
+test('forgot password screen can be rendered for each role', function (string $role) {
     $this->get("/forgot-password/{$role}")->assertStatus(200);
 })->with(['admin', 'asesor', 'asesi']);
 
-test('reset password link can be requested', function () {
-    Notification::fake();
-
+test('an unknown email or another role gets a clear error and no code', function () {
     $user = User::factory()->create();
 
-    $this->post('/forgot-password/asesi', ['email' => $user->email]);
-
-    Notification::assertSentTo($user, ResetPassword::class);
-});
-
-test('reset password link is not sent through the portal of another role', function () {
-    Notification::fake();
-
-    $user = User::factory()->create();
-
-    $this->post('/forgot-password/admin', ['email' => $user->email])->assertSessionHas('status');
+    $this->post('/forgot-password/asesi', ['email' => 'tidak-ada@example.com'])->assertSessionHasErrors('email');
+    $this->post('/forgot-password/admin', ['email' => $user->email])->assertSessionHasErrors('email');
 
     Notification::assertNothingSent();
 });
 
-test('reset password screen can be rendered', function () {
-    Notification::fake();
+test('password is reset through email, OTP code, and a new password page', function () {
+    $user = User::factory()->asesor()->create(['must_change_password' => true]);
 
+    $this->post('/forgot-password/asesor', ['email' => $user->email])->assertRedirect(route('password.otp', 'asesor'));
+
+    // Halaman password baru belum bisa dibuka sebelum kode benar.
+    $this->get('/forgot-password/asesor/password-baru')->assertRedirect(route('password.request', 'asesor'));
+
+    $this->post('/forgot-password/asesor/kode', ['kode' => '000000'])->assertSessionHasErrors('kode');
+    $this->post('/forgot-password/asesor/kode', ['kode' => kodeOtpTerakhir($user)])->assertRedirect(route('password.reset', 'asesor'));
+
+    $this->get('/forgot-password/asesor/password-baru')->assertOk();
+
+    $this->post('/forgot-password/asesor/password-baru', ['password' => 'rahasia-baru', 'password_confirmation' => 'rahasia-baru'])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('login.role', 'asesor'));
+
+    $user->refresh();
+
+    expect(Hash::check('rahasia-baru', $user->password))->toBeTrue()
+        ->and($user->must_change_password)->toBeFalse();
+
+    // Sesi lupa password selesai; halaman password baru tertutup lagi.
+    $this->get('/forgot-password/asesor/password-baru')->assertRedirect(route('password.request', 'asesor'));
+});
+
+test('an OTP code expires after 60 seconds and can be used only once', function () {
+    $user = User::factory()->create();
+
+    $this->post('/forgot-password/asesi', ['email' => $user->email]);
+    $kode = kodeOtpTerakhir($user);
+
+    $this->travel(61)->seconds();
+
+    $this->post('/forgot-password/asesi/kode', ['kode' => $kode])
+        ->assertSessionHasErrors(['kode' => 'Kode sudah kedaluwarsa. Silakan minta kode baru.']);
+});
+
+test('a code is voided after five wrong attempts', function () {
+    $user = User::factory()->create();
+
+    $this->post('/forgot-password/asesi', ['email' => $user->email]);
+    $kode = kodeOtpTerakhir($user);
+    $salah = $kode === '111111' ? '222222' : '111111';
+
+    foreach (range(1, 5) as $_) {
+        $this->post('/forgot-password/asesi/kode', ['kode' => $salah]);
+    }
+
+    $this->post('/forgot-password/asesi/kode', ['kode' => $kode])->assertSessionHasErrors('kode');
+});
+
+test('resending waits 60 seconds and is limited to five times a day', function () {
     $user = User::factory()->create();
 
     $this->post('/forgot-password/asesi', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get('/reset-password/'.$notification->token);
+    $this->post('/forgot-password/asesi/kirim-ulang')->assertSessionHasErrors('kode');
 
-        $response->assertStatus(200);
+    foreach (range(1, 5) as $_) {
+        $this->travel(61)->seconds();
+        $this->post('/forgot-password/asesi/kirim-ulang')->assertSessionHasNoErrors();
+    }
 
-        return true;
-    });
-});
+    $this->travel(61)->seconds();
+    $this->post('/forgot-password/asesi/kirim-ulang')->assertSessionHasErrors('kode');
 
-test('password can be reset with valid token', function () {
-    Notification::fake();
+    Notification::assertSentToTimes($user, KodeOtpNotification::class, 6);
 
-    $user = User::factory()->asesor()->create(['must_change_password' => true]);
-
-    $this->post('/forgot-password/asesor', ['email' => $user->email]);
-
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-        $response = $this->post('/reset-password', [
-            'token' => $notification->token,
-            'email' => $user->email,
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
-
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login.role', 'asesor'));
-
-        expect($user->fresh()->must_change_password)->toBeFalse();
-
-        return true;
-    });
+    // Batas harian kembali setelah berganti hari (WIB).
+    $this->travel(1)->days();
+    $this->post('/forgot-password/asesi/kirim-ulang')->assertSessionHasNoErrors();
 });

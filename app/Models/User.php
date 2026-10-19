@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
-use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifikasiEmailAsesi;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -13,8 +12,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * Verifikasi email hanya diwajibkan (middleware `verified`) pada menu asesi;
- * akun asesor punya alur verifikasi sendiri dan akun admin dibuat langsung.
+ * Semua menu di dalam aplikasi mewajibkan email terverifikasi (middleware `verified`).
+ * Akun asesor memverifikasi lewat link aktivasi, akun admin dibuat dalam keadaan terverifikasi.
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -79,13 +78,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Kirim email reset password berbahasa Indonesia.
-     *
-     * @param  string  $token
+     * Akun asesi yang dinonaktifkan pemiliknya (soft delete). Bisa diaktifkan kembali lewat OTP.
      */
-    public function sendPasswordResetNotification($token): void
+    public function isNonaktif(): bool
     {
-        $this->notify(new ResetPasswordNotification($token));
+        return $this->nonaktif_pada !== null;
     }
 
     /**
@@ -108,6 +105,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'role' => UserRole::class,
             'must_change_password' => 'boolean',
             'email_verified_at' => 'datetime',
+            'nonaktif_pada' => 'datetime',
             'created_at' => 'datetime',
         ];
     }

@@ -1,64 +1,66 @@
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 
-// Components...
+import PasswordInput from '@/components/auth/password-input';
+import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-import HeadingSmall from '@/components/heading-small';
-
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-
-export default function DeleteUser() {
+/**
+ * Asesi menonaktifkan akunnya sendiri. Data tidak dihapus; akun bisa diaktifkan kembali
+ * lewat halaman masuk atau registrasi dengan email yang sama.
+ */
+export default function NonaktifkanAkun() {
     const passwordInput = useRef<HTMLInputElement>(null);
     const { data, setData, delete: destroy, processing, reset, errors, clearErrors } = useForm({ password: '' });
 
-    const deleteUser: FormEventHandler = (e) => {
+    const nonaktifkan: FormEventHandler = (e) => {
         e.preventDefault();
 
         destroy(route('profile.destroy'), {
             preserveScroll: true,
-            onSuccess: () => closeModal(),
             onError: () => passwordInput.current?.focus(),
             onFinish: () => reset(),
         });
     };
 
-    const closeModal = () => {
+    const tutup = () => {
         clearErrors();
         reset();
     };
 
     return (
         <div className="space-y-6">
-            <HeadingSmall title="Delete account" description="Delete your account and all of its resources" />
+            <HeadingSmall title="Nonaktifkan akun" description="Hentikan sementara pemakaian akun asesi Anda" />
+
             <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
-                    <p className="font-medium">Warning</p>
-                    <p className="text-sm">Please proceed with caution, this cannot be undone.</p>
+                <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                    <p className="font-medium">Perhatian</p>
+                    <p className="text-sm">
+                        Setelah dinonaktifkan Anda akan keluar dan tidak bisa masuk. Data diri dan riwayat permohonan tetap tersimpan. Akun bisa
+                        diaktifkan kembali lewat halaman masuk atau registrasi dengan email yang sama, lalu verifikasi kode yang dikirim ke email.
+                    </p>
                 </div>
 
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button variant="destructive">Delete account</Button>
+                        <Button variant="destructive">Nonaktifkan akun</Button>
                     </DialogTrigger>
+
                     <DialogContent>
-                        <DialogTitle>Are you sure you want to delete your account?</DialogTitle>
-                        <DialogDescription>
-                            Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password
-                            to confirm you would like to permanently delete your account.
-                        </DialogDescription>
-                        <form className="space-y-6" onSubmit={deleteUser}>
+                        <DialogTitle>Nonaktifkan akun Anda?</DialogTitle>
+                        <DialogDescription>Masukkan password untuk memastikan ini memang Anda.</DialogDescription>
+
+                        <form className="space-y-6" onSubmit={nonaktifkan}>
                             <div className="grid gap-2">
                                 <Label htmlFor="password" className="sr-only">
                                     Password
                                 </Label>
 
-                                <Input
+                                <PasswordInput
                                     id="password"
-                                    type="password"
                                     name="password"
                                     ref={passwordInput}
                                     value={data.password}
@@ -70,15 +72,15 @@ export default function DeleteUser() {
                                 <InputError message={errors.password} />
                             </div>
 
-                            <DialogFooter>
+                            <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary" onClick={closeModal}>
-                                        Cancel
+                                    <Button variant="secondary" onClick={tutup}>
+                                        Batal
                                     </Button>
                                 </DialogClose>
 
                                 <Button variant="destructive" disabled={processing} asChild>
-                                    <button type="submit">Delete account</button>
+                                    <button type="submit">Nonaktifkan</button>
                                 </Button>
                             </DialogFooter>
                         </form>

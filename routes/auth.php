@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AktivasiAkunController;
 use App\Http\Controllers\Auth\AsesorVerificationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\FirstPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\PasswordResetOtpController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
@@ -35,17 +37,37 @@ Route::middleware('guest')->group(function () {
     Route::post('login/{role}', [AuthenticatedSessionController::class, 'store'])
         ->name('login.store');
 
+    // Lupa password: email → kode OTP → password baru. Kemajuan tiap langkah disimpan di session.
     Route::get('forgot-password/{role}', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
     Route::post('forgot-password/{role}', [PasswordResetLinkController::class, 'store'])
         ->name('password.email');
 
-    Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+    Route::get('forgot-password/{role}/kode', [PasswordResetOtpController::class, 'show'])
+        ->name('password.otp');
+
+    Route::post('forgot-password/{role}/kode', [PasswordResetOtpController::class, 'verify'])
+        ->name('password.otp.verify');
+
+    Route::post('forgot-password/{role}/kirim-ulang', [PasswordResetOtpController::class, 'resend'])
+        ->name('password.otp.resend');
+
+    Route::get('forgot-password/{role}/password-baru', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
-    Route::post('reset-password', [NewPasswordController::class, 'store'])
+    Route::post('forgot-password/{role}/password-baru', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // Aktivasi ulang akun asesi nonaktif, dimulai dari login atau registrasi.
+    Route::get('aktivasi-akun', [AktivasiAkunController::class, 'show'])
+        ->name('aktivasi.show');
+
+    Route::post('aktivasi-akun/kirim', [AktivasiAkunController::class, 'kirim'])
+        ->name('aktivasi.kirim');
+
+    Route::post('aktivasi-akun', [AktivasiAkunController::class, 'verifikasi'])
+        ->name('aktivasi.verifikasi');
 });
 
 Route::middleware('auth')->group(function () {

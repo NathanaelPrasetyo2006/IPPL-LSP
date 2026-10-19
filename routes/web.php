@@ -9,7 +9,8 @@ Route::get('/', function () {
     return redirect()->route(Auth::check() ? 'dashboard' : 'login');
 })->name('home');
 
-Route::middleware(['auth'])->group(function () {
+// Akun yang emailnya belum terverifikasi (mis. registrasi dengan email asal-asalan) tidak bisa masuk beranda.
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');

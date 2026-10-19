@@ -36,6 +36,7 @@ export interface SharedData {
 export interface Flash {
     success?: string | null;
     error?: string | null;
+    status?: string | null;
 }
 
 export interface PaginationLink {
@@ -238,4 +239,12 @@ export interface JenisDokumenDef {
     identitas: boolean;
     accept: string;
     maks_mb: number;
+}
+
+/** Keadaan kode OTP dari server (KodeVerifikasi::status), dalam detik. */
+export interface OtpStatus {
+    terkirim: boolean;
+    kedaluwarsa_dalam: number;
+    kirim_ulang_dalam: number;
+    sisa_kirim_ulang: number;
 }

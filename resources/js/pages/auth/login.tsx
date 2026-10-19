@@ -1,7 +1,8 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
+import PasswordInput from '@/components/auth/password-input';
 import RoleBadge from '@/components/auth/role-badge';
 import { ROLES } from '@/components/auth/roles';
 import InputError from '@/components/input-error';
@@ -53,8 +54,6 @@ export default function Login({ role, status }: LoginProps) {
         remember: false,
     });
 
-    const [visible, setVisible] = useState(false);
-
     const meta = ROLES[role];
 
     const submit: FormEventHandler = (e) => {
@@ -102,29 +101,15 @@ export default function Login({ role, status }: LoginProps) {
                         </TextLink>
                     </div>
 
-                    <div className="relative">
-                        <Input
-                            id="password"
-                            type={visible ? 'text' : 'password'}
-                            required
-                            tabIndex={2}
-                            autoComplete="current-password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            placeholder="Password"
-                            className="pr-10"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => setVisible((current) => !current)}
-                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1"
-                            aria-label={visible ? 'Sembunyikan password' : 'Tampilkan password'}
-                            tabIndex={-1}
-                        >
-                            {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
+                    <PasswordInput
+                        id="password"
+                        required
+                        tabIndex={2}
+                        autoComplete="current-password"
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        placeholder="Password"
+                    />
 
                     <InputError message={errors.password} />
                 </div>

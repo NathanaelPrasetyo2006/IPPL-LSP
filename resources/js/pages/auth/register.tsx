@@ -1,7 +1,8 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Eye, EyeOff, Info, LoaderCircle } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { Info, LoaderCircle } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
+import PasswordInput from '@/components/auth/password-input';
 import Requirement from '@/components/auth/password-requirement';
 import RoleBadge from '@/components/auth/role-badge';
 import InputError from '@/components/input-error';
@@ -30,8 +31,6 @@ export default function Register() {
         password_confirmation: '',
         persetujuan: false,
     });
-
-    const [visible, setVisible] = useState(false);
 
     const longEnough = data.password.length >= 8;
     const matches = data.password !== '' && data.password === data.password_confirmation;
@@ -115,29 +114,15 @@ export default function Register() {
                 <div className="grid gap-2">
                     <Label htmlFor="password">Password</Label>
 
-                    <div className="relative">
-                        <Input
-                            id="password"
-                            type={visible ? 'text' : 'password'}
-                            required
-                            autoComplete="new-password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            disabled={processing}
-                            placeholder="Minimal 8 karakter"
-                            className="pr-10"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => setVisible((current) => !current)}
-                            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1"
-                            aria-label={visible ? 'Sembunyikan password' : 'Tampilkan password'}
-                            tabIndex={-1}
-                        >
-                            {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                    </div>
+                    <PasswordInput
+                        id="password"
+                        required
+                        autoComplete="new-password"
+                        value={data.password}
+                        onChange={(e) => setData('password', e.target.value)}
+                        disabled={processing}
+                        placeholder="Minimal 8 karakter"
+                    />
 
                     <InputError message={errors.password} />
                 </div>
@@ -145,9 +130,8 @@ export default function Register() {
                 <div className="grid gap-2">
                     <Label htmlFor="password_confirmation">Ulangi password</Label>
 
-                    <Input
+                    <PasswordInput
                         id="password_confirmation"
-                        type={visible ? 'text' : 'password'}
                         required
                         autoComplete="new-password"
                         value={data.password_confirmation}

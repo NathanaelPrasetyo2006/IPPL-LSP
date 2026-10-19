@@ -2,45 +2,71 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\TujuanOtp;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Support\KodeVerifikasi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Lupa password langkah 1: masukkan email, lalu kode OTP dikirim ke email tersebut.
+ */
 class PasswordResetLinkController extends Controller
 {
     /**
-     * Halaman permintaan tautan reset password untuk satu peran.
+     * Key session yang menyimpan proses lupa password yang sedang berjalan.
      */
+    public const SESSION = 'reset_password';
+
     public function create(Request $request, UserRole $role): Response
     {
         return Inertia::render('auth/forgot-password', [
             'role' => $role->value,
-            'status' => $request->session()->get('status'),
+            'email' => $request->session()->get(self::SESSION.'.email', ''),
         ]);
     }
 
     /**
-     * Kirim tautan reset password ke akun dengan email dan peran yang cocok.
-     *
      * @throws ValidationException
      */
     public function store(Request $request, UserRole $role): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-        ]);
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+        $request->validate(['email' => ['required', 'email']]);
 
-        Password::sendResetLink([
-            'email' => $request->input('email'),
+        $user = User::query()->where('email', $request->input('email'))->where('role', $role)->first();
+
+        if (! $user) {
+            throw ValidationException::withMessages(['email' => "Email tidak terdaftar sebagai {$role->label()}."]);
+        }
+
+        if ($user->isNonaktif()) {
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini nonaktif. Aktifkan kembali lewat halaman masuk atau registrasi dengan email yang sama.',
+            ]);
+        }
+
+        // Pengguna yang kembali ke langkah 1 masih terkena jeda kirim ulang; kode lama tetap bisa dipakai.
+        try {
+            KodeVerifikasi::kirim($user, TujuanOtp::ResetPassword);
+        } catch (ValidationException $e) {
+            if (! KodeVerifikasi::status($user, TujuanOtp::ResetPassword)['terkirim']) {
+                throw ValidationException::withMessages(['email' => $e->validator->errors()->first('kode')]);
+            }
+        }
+
+        $request->session()->put(self::SESSION, [
+            'id_user' => $user->id_user,
+            'email' => $user->email,
             'role' => $role->value,
+            'terverifikasi' => false,
         ]);
 
-        // Pesan selalu sama agar keberadaan suatu email tidak bisa ditebak.
-        return back()->with('status', 'Jika email tersebut terdaftar sebagai '.$role->label().', tautan reset password sudah kami kirim. Periksa kotak masuk atau folder spam Anda.');
+        return to_route('password.otp', $role);
     }
 }

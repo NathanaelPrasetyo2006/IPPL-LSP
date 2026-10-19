@@ -11,6 +11,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -42,7 +44,8 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'no_telp' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            // Email milik akun nonaktif boleh dipakai: diarahkan ke aktivasi ulang di bawah.
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->whereNull('nonaktif_pada')],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
             'persetujuan' => ['accepted'],
         ], [
@@ -56,6 +59,19 @@ class RegisteredUserController extends Controller
             'no_telp' => 'no. HP',
             'password' => 'password',
         ]);
+
+        // Akun nonaktif selalu milik asesi, karena admin & asesor tidak bisa menonaktifkan akunnya.
+        $nonaktif = User::query()->where('email', $validated['email'])->whereNotNull('nonaktif_pada')->first();
+
+        if ($nonaktif) {
+            $request->session()->put(AktivasiAkunController::SESSION, [
+                'id_user' => $nonaktif->id_user,
+                'asal' => 'registrasi',
+                'password_baru' => Hash::make($validated['password']),
+            ]);
+
+            return to_route('aktivasi.show');
+        }
 
         $user = DB::transaction(function () use ($validated) {
             $user = User::create([
