@@ -75,7 +75,7 @@ test('admin can delete an unverified asesor permanently', function () {
     $asesor = asesorBelumVerifikasi();
     $user = $asesor->user;
 
-    $this->actingAs($this->admin)->delete("/master/asesor/{$asesor->id_asesor}")->assertSessionHas('success');
+    $this->actingAs($this->admin)->delete("/master/asesor/{$asesor->ulid}")->assertSessionHas('success');
 
     $this->assertModelMissing($asesor);
     $this->assertModelMissing($user);
@@ -84,7 +84,7 @@ test('admin can delete an unverified asesor permanently', function () {
 test('admin can not delete a verified asesor', function () {
     $asesor = Asesor::factory()->create(['id_user' => User::factory()->asesor()]);
 
-    $this->actingAs($this->admin)->delete("/master/asesor/{$asesor->id_asesor}")->assertSessionHas('error');
+    $this->actingAs($this->admin)->delete("/master/asesor/{$asesor->ulid}")->assertSessionHas('error');
 
     $this->assertModelExists($asesor);
 });
@@ -93,8 +93,8 @@ test('verification link can be resent only while the account is unverified', fun
     $belum = asesorBelumVerifikasi();
     $sudah = Asesor::factory()->create(['id_user' => User::factory()->asesor()]);
 
-    $this->actingAs($this->admin)->post("/master/asesor/{$belum->id_asesor}/kirim-ulang-verifikasi")->assertSessionHas('success');
-    $this->actingAs($this->admin)->post("/master/asesor/{$sudah->id_asesor}/kirim-ulang-verifikasi")->assertSessionHas('error');
+    $this->actingAs($this->admin)->post("/master/asesor/{$belum->ulid}/kirim-ulang-verifikasi")->assertSessionHas('success');
+    $this->actingAs($this->admin)->post("/master/asesor/{$sudah->ulid}/kirim-ulang-verifikasi")->assertSessionHas('error');
 
     Notification::assertSentTo($belum->user, AsesorVerifikasiAkun::class);
     Notification::assertNotSentTo($sudah->user, AsesorVerifikasiAkun::class);
@@ -103,7 +103,7 @@ test('verification link can be resent only while the account is unverified', fun
 test('correcting the email of an unverified asesor resends the verification link', function () {
     $asesor = asesorBelumVerifikasi(['email' => 'salah@example.com']);
 
-    $this->actingAs($this->admin)->put("/master/asesor/{$asesor->id_asesor}", [
+    $this->actingAs($this->admin)->put("/master/asesor/{$asesor->ulid}", [
         'nama' => $asesor->nama,
         'no_reg' => $asesor->no_reg,
         'email' => 'benar@example.com',

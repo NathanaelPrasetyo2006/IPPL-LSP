@@ -27,7 +27,7 @@ class PeriodePendaftaranController extends Controller
     public function index(): Response
     {
         $periode = PeriodePendaftaran::query()
-            ->with('skema:id_skema,judul,nomor')
+            ->with('skema:id_skema,ulid,judul,nomor')
             ->withCount([
                 'permohonan',
                 'permohonan as permohonan_menunggu_count' => fn ($query) => $query->where('status', StatusPermohonan::Diajukan),
@@ -37,6 +37,7 @@ class PeriodePendaftaranController extends Controller
             ->paginate(10)
             ->through(fn (PeriodePendaftaran $periode) => [
                 'id_periode' => $periode->id_periode,
+                'ulid' => $periode->ulid,
                 'nama' => $periode->nama,
                 'tanggal_buka' => $periode->tanggal_buka->locale('id')->translatedFormat('d M Y'),
                 'tanggal_tutup' => $periode->tanggal_tutup->locale('id')->translatedFormat('d M Y'),
@@ -44,7 +45,7 @@ class PeriodePendaftaranController extends Controller
                 'kuota_terpakai' => $periode->kuota_terpakai_count,
                 'aktif' => $periode->aktif,
                 'status' => $periode->status(),
-                'skema' => $periode->skema->map->only(['id_skema', 'judul', 'nomor'])->values(),
+                'skema' => $periode->skema->map->only(['id_skema', 'ulid', 'judul', 'nomor'])->values(),
                 'jumlah_permohonan' => $periode->permohonan_count,
                 'permohonan_menunggu' => $periode->permohonan_menunggu_count,
             ]);
@@ -66,13 +67,10 @@ class PeriodePendaftaranController extends Controller
     {
         $periode->load(['skema' => fn ($query) => $query->orderBy('nomor')]);
 
-        $idSkema = $request->integer('skema') ?: null;
+        // Filter skema memakai kode acak (ulid) dan hanya menerima skema yang dibuka pada periode ini.
+        $skemaDipilih = $periode->skema->firstWhere('ulid', (string) $request->query('skema'));
+        $idSkema = $skemaDipilih?->id_skema;
         $search = trim((string) $request->query('search', ''));
-
-        // Filter skema hanya menerima skema yang memang dibuka pada periode ini.
-        if ($idSkema && ! $periode->skema->contains('id_skema', $idSkema)) {
-            $idSkema = null;
-        }
 
         $pendaftar = $periode->permohonan()
             ->with(['dataDiri:id_data_diri,id_user,kode_asesi,nama_lengkap,no_telp', 'dataDiri.user:id_user,email', 'skema:id_skema,judul,nomor', 'tuk:id_tuk,nama'])
@@ -122,6 +120,7 @@ class PeriodePendaftaranController extends Controller
         return Inertia::render('pendaftaran/periode/show', [
             'periode' => [
                 'id_periode' => $periode->id_periode,
+                'ulid' => $periode->ulid,
                 'nama' => $periode->nama,
                 'tanggal_buka' => $periode->tanggal_buka->locale('id')->translatedFormat('d F Y'),
                 'tanggal_tutup' => $periode->tanggal_tutup->locale('id')->translatedFormat('d F Y'),
@@ -131,6 +130,7 @@ class PeriodePendaftaranController extends Controller
                 'status' => $periode->status(),
                 'skema' => $periode->skema->map(fn (SkemaSertifikasi $skema) => [
                     'id_skema' => $skema->id_skema,
+                    'ulid' => $skema->ulid,
                     'judul' => $skema->judul,
                     'nomor' => $skema->nomor,
                     'jumlah_pendaftar' => (int) ($jumlahPerSkema[$skema->id_skema] ?? 0),
@@ -138,7 +138,7 @@ class PeriodePendaftaranController extends Controller
                 'lokasi' => $lokasi,
             ],
             'pendaftar' => $pendaftar,
-            'filters' => ['skema' => $idSkema, 'search' => $search],
+            'filters' => ['skema' => $skemaDipilih?->ulid, 'search' => $search],
         ]);
     }
 
@@ -178,6 +178,7 @@ class PeriodePendaftaranController extends Controller
         return Inertia::render('pendaftaran/periode/edit', [
             'periode' => [
                 'id_periode' => $periode->id_periode,
+                'ulid' => $periode->ulid,
                 'nama' => $periode->nama,
                 'tanggal_buka' => $periode->tanggal_buka->toDateString(),
                 'tanggal_tutup' => $periode->tanggal_tutup->toDateString(),
@@ -306,7 +307,7 @@ class PeriodePendaftaranController extends Controller
      */
     private function tukOptions(): array
     {
-        return Tuk::query()->orderBy('nama')->get(['id_tuk', 'nama', 'alamat'])->toArray();
+        return Tuk::query()->orderBy('nama')->get(['id_tuk', 'ulid', 'nama', 'alamat'])->toArray();
     }
 
     /**

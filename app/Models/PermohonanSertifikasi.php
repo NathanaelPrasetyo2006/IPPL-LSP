@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatusPermohonan;
 use App\Enums\TujuanAsesmen;
+use App\Models\Concerns\PunyaKodeUrl;
 use Database\Factories\PermohonanSertifikasiFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PermohonanSertifikasi extends Model
 {
     /** @use HasFactory<PermohonanSertifikasiFactory> */
-    use HasFactory;
+    use HasFactory, PunyaKodeUrl;
 
     protected $table = 'permohonan_sertifikasi';
 
@@ -93,6 +94,26 @@ class PermohonanSertifikasi extends Model
     public function riwayatLokasi(): HasMany
     {
         return $this->hasMany(RiwayatLokasiPermohonan::class, 'id_permohonan', 'id_permohonan')->orderBy('id_riwayat');
+    }
+
+    /**
+     * @return HasMany<RiwayatStatusPermohonan, $this>
+     */
+    public function riwayatStatus(): HasMany
+    {
+        return $this->hasMany(RiwayatStatusPermohonan::class, 'id_permohonan', 'id_permohonan')->orderBy('id_riwayat_status');
+    }
+
+    /**
+     * Catat perubahan status ke riwayat. Status di tabel permohonan diubah oleh pemanggil.
+     */
+    public function catatStatus(StatusPermohonan $status, ?string $catatan, ?User $oleh): void
+    {
+        $this->riwayatStatus()->create([
+            'status' => $status,
+            'catatan' => $catatan,
+            'id_user' => $oleh?->id_user,
+        ]);
     }
 
     /**

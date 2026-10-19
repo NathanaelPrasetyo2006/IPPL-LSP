@@ -1,5 +1,5 @@
 import InputError from '@/components/input-error';
-import { DataPemohon, DataSertifikasi, DokumenList, Panel } from '@/components/pendaftaran/permohonan-detail';
+import { DataPemohon, DataSertifikasi, DokumenList, Panel, RiwayatPermohonan } from '@/components/pendaftaran/permohonan-detail';
 import { StatusPermohonanBadge } from '@/components/pendaftaran/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ export default function VerifikasiShow({ permohonan }: { permohonan: PermohonanD
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        put(route('pendaftaran.verifikasi.update', permohonan.id_permohonan), { preserveScroll: true });
+        put(route('pendaftaran.verifikasi.update', permohonan.ulid), { preserveScroll: true });
     };
 
     return (
@@ -151,6 +151,7 @@ export default function VerifikasiShow({ permohonan }: { permohonan: PermohonanD
 
                         <DataPemohon pemohon={permohonan.pemohon} />
                         <DataSertifikasi permohonan={permohonan} />
+                        <RiwayatPermohonan riwayat={permohonan.riwayat_status} />
                     </div>
 
                     <div className="xl:sticky xl:top-4 xl:self-start">

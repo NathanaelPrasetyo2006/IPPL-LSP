@@ -50,9 +50,9 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
         const options = { preserveScroll: true, preserveState: true, onSuccess: () => onOpenChange(false) };
 
         if (unit) {
-            put(route('master.unit-kompetensi.update', unit.id_unit_kompetensi), options);
+            put(route('master.unit-kompetensi.update', unit.ulid), options);
         } else {
-            post(route('master.skema-sertifikasi.unit-kompetensi.store', skema.id_skema), options);
+            post(route('master.skema-sertifikasi.unit-kompetensi.store', skema.ulid), options);
         }
     };
 

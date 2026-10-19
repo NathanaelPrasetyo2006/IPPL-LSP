@@ -28,6 +28,11 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    // Sumber data provinsi/kab/kota/kecamatan/kelurahan untuk alamat di APL-01.
+    'wilayah' => [
+        'url' => env('WILAYAH_API_URL', 'https://wilayah.id/api'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

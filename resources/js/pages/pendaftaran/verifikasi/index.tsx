@@ -18,12 +18,13 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Verifikasi APL-01', href: '/pendaftaran/verifikasi' },
 ];
 
-type Filter = { status: string; periode: number | null; search: string };
+/** periode berisi kode acak (ulid) periode, bukan id. */
+type Filter = { status: string; periode: string | null; search: string };
 
 interface IndexProps {
     permohonan: Paginated<PermohonanRingkas>;
     filters: Filter;
-    stats: { diajukan: number; diterima: number; ditolak: number };
+    stats: { diajukan: number; diterima: number; ditolak: number; dibatalkan: number };
     periodeOptions: Record<string, string>;
 }
 
@@ -31,6 +32,7 @@ const TABS = [
     { value: 'diajukan', label: 'Menunggu' },
     { value: 'diterima', label: 'Diterima' },
     { value: 'ditolak', label: 'Ditolak' },
+    { value: 'dibatalkan', label: 'Dibatalkan' },
     { value: 'semua', label: 'Semua' },
 ];
 
@@ -66,7 +68,7 @@ export default function VerifikasiIndex({ permohonan, filters, stats, periodeOpt
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const jumlahTab: Record<string, number> = { ...stats, semua: stats.diajukan + stats.diterima + stats.ditolak };
+    const jumlahTab: Record<string, number> = { ...stats, semua: stats.diajukan + stats.diterima + stats.ditolak + stats.dibatalkan };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -114,10 +116,7 @@ export default function VerifikasiIndex({ permohonan, filters, stats, periodeOpt
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row">
-                            <Select
-                                value={filters.periode ? String(filters.periode) : 'semua'}
-                                onValueChange={(value) => muat({ periode: value === 'semua' ? null : Number(value) })}
-                            >
+                            <Select value={filters.periode ?? 'semua'} onValueChange={(value) => muat({ periode: value === 'semua' ? null : value })}>
                                 <SelectTrigger className="h-9 sm:w-56" aria-label="Filter periode">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -189,7 +188,7 @@ export default function VerifikasiIndex({ permohonan, filters, stats, periodeOpt
 
                                     <TableCell className="pr-5 text-right">
                                         <Button size="sm" variant={item.status === 'diajukan' ? 'default' : 'outline'} asChild>
-                                            <Link href={route('pendaftaran.verifikasi.show', item.id_permohonan)}>
+                                            <Link href={route('pendaftaran.verifikasi.show', item.ulid)}>
                                                 {item.status === 'diajukan' && <SearchCheck />}
                                                 {item.status === 'diajukan' ? 'Periksa' : 'Lihat'}
                                             </Link>

@@ -8,14 +8,14 @@ test('asesor can view tuk but can not change it', function () {
     $tuk = Tuk::factory()->create();
 
     $this->actingAs($asesor)->get('/master/tuk')->assertOk();
-    $this->actingAs($asesor)->get("/master/tuk/{$tuk->id_tuk}/edit")->assertForbidden();
-    $this->actingAs($asesor)->delete("/master/tuk/{$tuk->id_tuk}")->assertForbidden();
+    $this->actingAs($asesor)->get("/master/tuk/{$tuk->ulid}/edit")->assertForbidden();
+    $this->actingAs($asesor)->delete("/master/tuk/{$tuk->ulid}")->assertForbidden();
 });
 
 test('deleting a tuk is a soft delete', function () {
     $tuk = Tuk::factory()->create();
 
-    $this->actingAs(User::factory()->admin()->create())->delete("/master/tuk/{$tuk->id_tuk}")->assertSessionHas('success');
+    $this->actingAs(User::factory()->admin()->create())->delete("/master/tuk/{$tuk->ulid}")->assertSessionHas('success');
 
     $this->assertSoftDeleted($tuk);
 });
@@ -42,7 +42,7 @@ test('tuk name must be unique among active tuk', function () {
     $this->actingAs($admin)->post('/master/tuk', ['nama' => 'TUK Bandung', 'alamat' => 'Jl. Asia Afrika'])->assertSessionHasErrors('nama');
 
     // Menyimpan ulang tanpa mengganti nama tidak dianggap duplikat.
-    $this->actingAs($admin)->put("/master/tuk/{$tuk->id_tuk}", ['nama' => 'TUK Bandung', 'alamat' => 'Alamat baru'])->assertSessionHasNoErrors();
+    $this->actingAs($admin)->put("/master/tuk/{$tuk->ulid}", ['nama' => 'TUK Bandung', 'alamat' => 'Alamat baru'])->assertSessionHasNoErrors();
     expect($tuk->fresh()->alamat)->toBe('Alamat baru');
 
     // Nama milik TUK yang sudah dihapus boleh dipakai lagi.

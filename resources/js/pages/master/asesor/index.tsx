@@ -101,7 +101,7 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
             return;
         }
 
-        router.delete(route('master.asesor.destroy', target.id_asesor), {
+        router.delete(route('master.asesor.destroy', target.ulid), {
             preserveScroll: true,
             onStart: () => setDeleting(true),
             onFinish: () => {
@@ -113,7 +113,7 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
 
     const resend = (item: AsesorAccount) => {
         router.post(
-            route('master.asesor.resend-verification', item.id_asesor),
+            route('master.asesor.resend-verification', item.ulid),
             {},
             {
                 preserveScroll: true,
@@ -214,7 +214,7 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
 
                                                 <div className="min-w-0">
                                                     <Link
-                                                        href={route('master.asesor.edit', item.id_asesor)}
+                                                        href={route('master.asesor.edit', item.ulid)}
                                                         className="font-medium text-amber-700 hover:underline dark:text-amber-500"
                                                     >
                                                         {item.nama}
@@ -257,7 +257,7 @@ export default function AsesorIndex({ asesor, filters, stats }: IndexProps) {
                                                     asChild
                                                     title="Ubah akun"
                                                 >
-                                                    <Link href={route('master.asesor.edit', item.id_asesor)}>
+                                                    <Link href={route('master.asesor.edit', item.ulid)}>
                                                         <Pencil />
                                                         <span className="sr-only">Ubah {item.nama}</span>
                                                     </Link>

@@ -113,14 +113,14 @@ test('editing a period replaces its locations', function () {
     $periode->simpanLokasi([['id_tuk' => $tukA, 'skema' => [$skemaA, $skemaB]]]);
 
     $this->actingAs($this->admin)
-        ->get("/pendaftaran/periode/{$periode->id_periode}/edit")
+        ->get("/pendaftaran/periode/{$periode->ulid}/edit")
         ->assertInertia(fn ($page) => $page
             ->where('periode.lokasi.0.id_tuk', (string) $tukA)
             ->has('periode.lokasi.0.skema', 2)
             ->has('tukOptions', 2));
 
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$periode->id_periode}", dataPeriode([
+        ->put("/pendaftaran/periode/{$periode->ulid}", dataPeriode([
             // Periode sudah dibuka, jadi nama dan tanggal buka dikirim apa adanya.
             'nama' => $periode->nama,
             'tanggal_buka' => $periode->tanggal_buka->toDateString(),
@@ -141,10 +141,10 @@ test('period status follows dates and the active flag', function () {
 test('admin can close a period early and reopen it', function () {
     $periode = PeriodePendaftaran::factory()->create();
 
-    $this->actingAs($this->admin)->patch("/pendaftaran/periode/{$periode->id_periode}/status");
+    $this->actingAs($this->admin)->patch("/pendaftaran/periode/{$periode->ulid}/status");
     expect($periode->fresh()->status())->toBe('ditutup');
 
-    $this->actingAs($this->admin)->patch("/pendaftaran/periode/{$periode->id_periode}/status");
+    $this->actingAs($this->admin)->patch("/pendaftaran/periode/{$periode->ulid}/status");
     expect($periode->fresh()->status())->toBe('dibuka');
 });
 
@@ -154,13 +154,13 @@ test('periods with applicants cannot be deleted or lose their applied schemes', 
     $periode->skema()->sync([$permohonan->id_skema, $this->skema[0]->id_skema]);
 
     $this->actingAs($this->admin)
-        ->delete("/pendaftaran/periode/{$periode->id_periode}")
+        ->delete("/pendaftaran/periode/{$periode->ulid}")
         ->assertSessionHas('error');
 
     expect($periode->fresh())->not->toBeNull();
 
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$periode->id_periode}", dataPeriode([
+        ->put("/pendaftaran/periode/{$periode->ulid}", dataPeriode([
             'skema' => [$this->skema[0]->id_skema],
             'lokasi' => [['id_tuk' => (string) $this->tuk[0]->id_tuk, 'skema' => [$this->skema[0]->id_skema]]],
         ]))
@@ -199,7 +199,7 @@ test('period detail lists applicants and can filter them by scheme and search', 
     $sari->dataDiri->update(['nama_lengkap' => 'Sari Dewi']);
     PermohonanSertifikasi::factory()->create(); // periode lain
 
-    $url = "/pendaftaran/periode/{$periode->id_periode}";
+    $url = "/pendaftaran/periode/{$periode->ulid}";
 
     $this->actingAs($this->admin)
         ->get($url)
@@ -212,7 +212,7 @@ test('period detail lists applicants and can filter them by scheme and search', 
                 ->etc()));
 
     $this->actingAs($this->admin)
-        ->get("{$url}?skema={$skemaB->id_skema}")
+        ->get("{$url}?skema={$skemaB->ulid}")
         ->assertInertia(fn ($page) => $page->has('pendaftar.data', 1)->where('pendaftar.data.0.nama', 'Sari Dewi'));
 
     // Pencarian berlaku untuk nama, kode asesi, email, dan no. HP.
@@ -226,8 +226,8 @@ test('period detail lists applicants and can filter them by scheme and search', 
 test('only admin can open the period detail', function () {
     $periode = PeriodePendaftaran::factory()->create();
 
-    $this->actingAs(User::factory()->asesor()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
-    $this->actingAs(User::factory()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
+    $this->actingAs(User::factory()->asesor()->create())->get("/pendaftaran/periode/{$periode->ulid}")->assertForbidden();
+    $this->actingAs(User::factory()->create())->get("/pendaftaran/periode/{$periode->ulid}")->assertForbidden();
 });
 
 test('name and opening date are locked once the period has opened', function () {
@@ -244,15 +244,15 @@ test('name and opening date are locked once the period has opened', function () 
         ...$override,
     ]);
 
-    $this->actingAs($this->admin)->get("/pendaftaran/periode/{$periode->id_periode}/edit")->assertInertia(fn ($page) => $page->where('sudahDibuka', true));
+    $this->actingAs($this->admin)->get("/pendaftaran/periode/{$periode->ulid}/edit")->assertInertia(fn ($page) => $page->where('sudahDibuka', true));
 
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$periode->id_periode}", $data(['nama' => 'Nama Baru', 'tanggal_buka' => today()->toDateString()]))
+        ->put("/pendaftaran/periode/{$periode->ulid}", $data(['nama' => 'Nama Baru', 'tanggal_buka' => today()->toDateString()]))
         ->assertSessionHasErrors(['nama', 'tanggal_buka']);
 
     // Data lain seperti kuota dan tanggal tutup tetap bisa diubah.
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$periode->id_periode}", $data(['kuota' => 99]))
+        ->put("/pendaftaran/periode/{$periode->ulid}", $data(['kuota' => 99]))
         ->assertSessionHasNoErrors();
 
     expect($periode->fresh())->nama->toBe('Gelombang Lama')->kuota->toBe(99);
@@ -263,7 +263,7 @@ test('a scheduled period can still be renamed and rescheduled', function () {
     $periode = PeriodePendaftaran::factory()->dijadwalkan()->create(['kuota' => 10]);
 
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$periode->id_periode}", dataPeriode([
+        ->put("/pendaftaran/periode/{$periode->ulid}", dataPeriode([
             'nama' => 'Nama Baru',
             'tanggal_buka' => today()->addDays(10)->toDateString(),
             'tanggal_tutup' => today()->addDays(20)->toDateString(),

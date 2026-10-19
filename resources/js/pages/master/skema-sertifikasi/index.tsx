@@ -83,7 +83,7 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
             return;
         }
 
-        router.delete(route('master.skema-sertifikasi.destroy', deleteTarget.id_skema), {
+        router.delete(route('master.skema-sertifikasi.destroy', deleteTarget.ulid), {
             preserveScroll: true,
             onStart: () => setDeleting(true),
             onFinish: () => {
@@ -223,7 +223,7 @@ export default function SkemaSertifikasiIndex({ skema, filters, stats }: IndexPr
                                                         asChild
                                                         title="Ubah skema"
                                                     >
-                                                        <Link href={route('master.skema-sertifikasi.edit', item.id_skema)}>
+                                                        <Link href={route('master.skema-sertifikasi.edit', item.ulid)}>
                                                             <Pencil />
                                                             <span className="sr-only">Ubah {item.judul}</span>
                                                         </Link>

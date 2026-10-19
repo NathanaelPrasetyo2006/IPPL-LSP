@@ -24,7 +24,7 @@ class SkemaSertifikasiController extends Controller
             ->withCount('unitKompetensi')
             // Unit ikut dimuat untuk popup detail; cukup untuk 10 skema per halaman.
             ->with(['unitKompetensi' => fn ($query) => $query
-                ->select(['id_unit_kompetensi', 'id_skema', 'kode', 'judul', 'urutan'])
+                ->select(['id_unit_kompetensi', 'ulid', 'id_skema', 'kode', 'judul', 'urutan'])
                 ->orderBy('urutan')
                 ->orderBy('kode')])
             ->when($search !== '', function ($query) use ($search) {
@@ -77,7 +77,7 @@ class SkemaSertifikasiController extends Controller
     public function edit(SkemaSertifikasi $skema): Response
     {
         return Inertia::render('master/skema-sertifikasi/edit', [
-            'skema' => $skema->only(['id_skema', 'judul', 'nomor']),
+            'skema' => $skema->only(['id_skema', 'ulid', 'judul', 'nomor']),
         ]);
     }
 

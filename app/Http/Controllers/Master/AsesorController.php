@@ -42,6 +42,7 @@ class AsesorController extends Controller
             ->withQueryString()
             ->through(fn (Asesor $asesor) => [
                 'id_asesor' => $asesor->id_asesor,
+                'ulid' => $asesor->ulid,
                 'kode_asesor' => $asesor->kode_asesor,
                 'nama' => $asesor->nama,
                 'no_reg' => $asesor->no_reg,
@@ -113,6 +114,7 @@ class AsesorController extends Controller
         return Inertia::render('master/asesor/edit', [
             'asesor' => [
                 'id_asesor' => $asesor->id_asesor,
+                'ulid' => $asesor->ulid,
                 'nama' => $asesor->nama,
                 'no_reg' => $asesor->no_reg,
                 'email' => $asesor->user?->email,

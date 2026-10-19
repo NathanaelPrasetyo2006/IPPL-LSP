@@ -160,7 +160,7 @@ export default function SkemaDetailDialog({ skema, onOpenChange, canManage, onAd
         }
 
         router.put(
-            route('master.skema-sertifikasi.unit-kompetensi.susun', skema.id_skema),
+            route('master.skema-sertifikasi.unit-kompetensi.susun', skema.ulid),
             {
                 urutan: units.map((unit) => unit.id_unit_kompetensi),
                 hapus: dihapus.map((unit) => unit.id_unit_kompetensi),

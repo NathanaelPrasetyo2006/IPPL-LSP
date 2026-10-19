@@ -60,6 +60,8 @@ export interface Paginated<T> {
 
 export interface SkemaSertifikasi {
     id_skema: number;
+    /** Kode acak untuk URL; id tidak pernah ditampilkan di alamat halaman. */
+    ulid: string;
     judul: string;
     nomor: string;
     unit_kompetensi_count?: number;
@@ -68,6 +70,7 @@ export interface SkemaSertifikasi {
 
 export interface UnitKompetensi {
     id_unit_kompetensi: number;
+    ulid: string;
     id_skema: number;
     kode: string;
     judul: string;
@@ -90,12 +93,14 @@ export interface User {
 
 export interface Tuk {
     id_tuk: number;
+    ulid: string;
     nama: string;
     alamat: string;
 }
 
 export interface AsesorAccount {
     id_asesor: number;
+    ulid: string;
     kode_asesor: string | null;
     nama: string;
     no_reg: string;
@@ -173,6 +178,7 @@ export interface SkemaOption {
 
 export interface PeriodePendaftaran {
     id_periode: number;
+    ulid: string;
     nama: string;
     tanggal_buka: string;
     tanggal_tutup: string;
@@ -185,15 +191,16 @@ export interface PeriodePendaftaran {
     permohonan_menunggu: number;
 }
 
-export type StatusPermohonan = 'diajukan' | 'diterima' | 'ditolak';
+export type StatusPermohonan = 'diajukan' | 'diterima' | 'ditolak' | 'dibatalkan';
 
 export interface PermohonanRingkas {
     id_permohonan: number;
+    ulid: string;
     nomor: string;
     status: StatusPermohonan;
     status_label: string;
-    skema: { id_skema: number; judul: string; nomor: string } | null;
-    periode: { id_periode: number; nama: string } | null;
+    skema: { id_skema: number; ulid: string; judul: string; nomor: string } | null;
+    periode: { id_periode: number; ulid: string; nama: string } | null;
     lokasi: Tuk | null;
     /** Permohonan berjalan yang lokasinya dikosongkan admin dan harus dipilih ulang oleh asesi. */
     perlu_pilih_lokasi: boolean;
@@ -219,10 +226,21 @@ export interface PermohonanDetail extends Omit<PermohonanRingkas, 'skema'> {
     catatan_verifikasi: string | null;
     cek_dokumen: Record<string, boolean>;
     verifikator: string | null;
-    skema: { id_skema: number; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
+    skema: { id_skema: number; ulid: string; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
     pemohon: Record<string, string | null> & { nama_lengkap: string; kode_asesi: string };
     dokumen: DokumenPermohonan[];
     riwayat_lokasi: RiwayatLokasi[];
+    riwayat_status: RiwayatStatus[];
+}
+
+/** Satu perubahan status permohonan: diajukan, diterima/ditolak, diajukan ulang, dibatalkan. */
+export interface RiwayatStatus {
+    id_riwayat_status: number;
+    status: StatusPermohonan;
+    label: string;
+    catatan: string | null;
+    oleh: string | null;
+    waktu: string | null;
 }
 
 export interface RiwayatLokasi {

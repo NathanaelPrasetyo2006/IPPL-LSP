@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusPermohonan;
+use App\Models\Concerns\PunyaKodeUrl;
 use Database\Factories\PeriodePendaftaranFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PeriodePendaftaran extends Model
 {
     /** @use HasFactory<PeriodePendaftaranFactory> */
-    use HasFactory;
+    use HasFactory, PunyaKodeUrl;
 
     protected $table = 'periode_pendaftaran';
 
@@ -96,7 +97,7 @@ class PeriodePendaftaran extends Model
      */
     public function lokasiSkema(int $idSkema): Collection
     {
-        return $this->tuk()->wherePivot('id_skema', $idSkema)->orderBy('nama')->get(['tuk.id_tuk', 'tuk.nama', 'tuk.alamat']);
+        return $this->tuk()->wherePivot('id_skema', $idSkema)->orderBy('nama')->get(['tuk.id_tuk', 'tuk.ulid', 'tuk.nama', 'tuk.alamat']);
     }
 
     /**

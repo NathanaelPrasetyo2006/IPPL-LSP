@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { type DokumenPermohonan, type PermohonanDetail } from '@/types';
+import { type DokumenPermohonan, type PermohonanDetail, type RiwayatStatus } from '@/types';
 import { CircleCheck, CircleX, ExternalLink, FileText, FileWarning, History } from 'lucide-react';
 
 export function Panel({
@@ -60,6 +60,41 @@ export function DataPemohon({ pemohon }: { pemohon: PermohonanDetail['pemohon'] 
                 <Baris label="Telepon kantor" value={pemohon.telp_kantor} />
                 <Baris label="Email kantor" value={pemohon.email_kantor} />
             </dl>
+        </Panel>
+    );
+}
+
+/** Perjalanan permohonan; catatan penolakan lama tetap terlihat walau permohonan sudah diperbaiki. */
+export function RiwayatPermohonan({ riwayat }: { riwayat: RiwayatStatus[] }) {
+    if (riwayat.length === 0) {
+        return null;
+    }
+
+    return (
+        <Panel title="Riwayat permohonan">
+            <ol className="relative grid gap-4 border-l pl-5">
+                {riwayat.map((item) => (
+                    <li key={item.id_riwayat_status} className="relative">
+                        <span
+                            className={cn(
+                                'absolute top-1.5 -left-[25px] size-2.5 rounded-full ring-4 ring-white dark:ring-neutral-950',
+                                {
+                                    diajukan: 'bg-amber-500',
+                                    diterima: 'bg-emerald-600',
+                                    ditolak: 'bg-red-600',
+                                    dibatalkan: 'bg-slate-400',
+                                }[item.status],
+                            )}
+                        />
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-muted-foreground text-xs">
+                            {item.waktu}
+                            {item.oleh && ` · oleh ${item.oleh}`}
+                        </p>
+                        {item.catatan && <p className="bg-muted/60 mt-1.5 rounded-md px-2.5 py-1.5 text-sm whitespace-pre-line">{item.catatan}</p>}
+                    </li>
+                ))}
+            </ol>
         </Panel>
     );
 }

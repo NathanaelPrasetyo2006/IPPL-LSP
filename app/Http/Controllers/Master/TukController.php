@@ -64,7 +64,7 @@ class TukController extends Controller
     public function edit(Tuk $tuk): Response
     {
         return Inertia::render('master/tuk/edit', [
-            'tuk' => $tuk->only(['id_tuk', 'nama', 'alamat']),
+            'tuk' => $tuk->only(['id_tuk', 'ulid', 'nama', 'alamat']),
         ]);
     }
 

@@ -5,7 +5,9 @@ namespace App\Http\Requests\Sertifikasi;
 use App\Enums\JenisDokumen;
 use App\Enums\TujuanAsesmen;
 use App\Models\DataDiri;
+use App\Models\Negara;
 use App\Models\PeriodePendaftaran;
+use App\Models\PermohonanSertifikasi;
 use App\Models\SkemaSertifikasi;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -55,11 +57,17 @@ class PermohonanApl01Request extends FormRequest
         /** @var DataDiri|null $dataDiri */
         $dataDiri = $this->user()?->dataDiri;
 
+        // Mode perbaiki: periode, skema, dan dokumen yang sudah ada diambil dari permohonan itu sendiri.
+        /** @var PermohonanSertifikasi|null $permohonan */
+        $permohonan = $this->route('permohonan');
+
         /** @var PeriodePendaftaran $periode */
-        $periode = $this->route('periode');
+        $periode = $permohonan?->periode ?? $this->route('periode');
 
         /** @var SkemaSertifikasi $skema */
-        $skema = $this->route('skema');
+        $skema = $permohonan?->skema ?? $this->route('skema');
+
+        $dokumenPermohonan = $permohonan?->dokumen->pluck('jenis')->map->value->all() ?? [];
 
         $rules = [
             // Bagian 1a: data pribadi.
@@ -68,7 +76,14 @@ class PermohonanApl01Request extends FormRequest
             'tempat_lahir' => ['required', 'string', 'max:100'],
             'tgl_lahir' => ['required', 'date', 'before:-15 years'],
             'jenis_kelamin' => ['required', Rule::in(array_keys(DataDiri::JENIS_KELAMIN))],
-            'id_negara' => ['required', 'integer', Rule::exists('negara', 'id_negara')],
+            // WNI otomatis Indonesia (diisi di prepareForValidation); WNA memilih negara asal selain Indonesia.
+            'kebangsaan' => ['required', Rule::in(['wni', 'wna'])],
+            'id_negara' => [
+                'required',
+                'integer',
+                Rule::exists('negara', 'id_negara'),
+                ...($this->input('kebangsaan') === 'wna' ? [Rule::notIn([self::idIndonesia()])] : []),
+            ],
             'alamat_ktp' => ['required', 'string', 'max:500'],
             'alamat_domisili' => ['required', 'string', 'max:500'],
             'provinsi' => ['required', 'string', 'max:100'],
@@ -98,9 +113,12 @@ class PermohonanApl01Request extends FormRequest
             'dokumen' => ['nullable', 'array'],
         ];
 
-        // Bagian 3: dokumen. Dokumen identitas yang sudah pernah diunggah boleh tidak diunggah ulang.
+        // Bagian 3: dokumen. Dokumen yang sudah tersimpan (identitas di profil, atau dokumen permohonan
+        // yang sedang diperbaiki) boleh tidak diunggah ulang.
         foreach (JenisDokumen::cases() as $jenis) {
-            $sudahAda = $jenis->identitas() && filled($dataDiri?->{$jenis->kolomDataDiri()});
+            $sudahAda = $jenis->identitas()
+                ? filled($dataDiri?->{$jenis->kolomDataDiri()})
+                : in_array($jenis->value, $dokumenPermohonan, true);
 
             $rules["dokumen.{$jenis->value}"] = [
                 $jenis->wajib() && ! $sudahAda ? 'required' : 'nullable',
@@ -124,7 +142,8 @@ class PermohonanApl01Request extends FormRequest
             'tempat_lahir' => 'tempat lahir',
             'tgl_lahir' => 'tanggal lahir',
             'jenis_kelamin' => 'jenis kelamin',
-            'id_negara' => 'kebangsaan',
+            'kebangsaan' => 'kebangsaan',
+            'id_negara' => 'negara asal',
             'alamat_ktp' => 'alamat sesuai KTP',
             'alamat_domisili' => 'alamat domisili',
             'kode_pos' => 'kode pos',
@@ -155,6 +174,7 @@ class PermohonanApl01Request extends FormRequest
     {
         return [
             'nik.digits' => 'NIK harus terdiri dari 16 digit angka.',
+            'id_negara.not_in' => 'Untuk WNA, pilih negara asal selain Indonesia.',
             'nik.unique' => 'NIK :input sudah terdaftar pada akun lain. Hubungi admin LSP bila ini NIK Anda.',
             'tgl_lahir.before' => 'Usia pemohon minimal 15 tahun.',
             'no_telp.regex' => 'No. HP hanya boleh berisi angka (boleh diawali +), 9–15 digit.',
@@ -169,8 +189,17 @@ class PermohonanApl01Request extends FormRequest
         ];
     }
 
+    public static function idIndonesia(): ?int
+    {
+        return Negara::query()->where('nama_negara', 'Indonesia')->value('id_negara');
+    }
+
     protected function prepareForValidation(): void
     {
+        if ($this->input('kebangsaan') === 'wni') {
+            $this->merge(['id_negara' => self::idIndonesia()]);
+        }
+
         $bersih = fn (?string $nilai) => is_string($nilai) ? preg_replace('/[\s\-()]/', '', $nilai) : $nilai;
 
         $this->merge([

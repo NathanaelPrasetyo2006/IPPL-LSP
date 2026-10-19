@@ -6,6 +6,7 @@ use App\Enums\JenisDokumen;
 use App\Models\DataDiri;
 use App\Models\PermohonanSertifikasi;
 use App\Models\RiwayatLokasiPermohonan;
+use App\Models\RiwayatStatusPermohonan;
 
 /**
  * Bentuk data permohonan APL-01 untuk halaman asesi maupun verifikator.
@@ -21,12 +22,13 @@ class PermohonanPresenter
     {
         return [
             'id_permohonan' => $p->id_permohonan,
+            'ulid' => $p->ulid,
             'nomor' => $p->nomor,
             'status' => $p->status->value,
             'status_label' => $p->status->label(),
-            'skema' => $p->skema?->only(['id_skema', 'judul', 'nomor']),
-            'periode' => $p->periode?->only(['id_periode', 'nama']),
-            'lokasi' => $p->tuk?->only(['id_tuk', 'nama', 'alamat']),
+            'skema' => $p->skema?->only(['id_skema', 'ulid', 'judul', 'nomor']),
+            'periode' => $p->periode?->only(['id_periode', 'ulid', 'nama']),
+            'lokasi' => $p->tuk?->only(['id_tuk', 'ulid', 'nama', 'alamat']),
             'perlu_pilih_lokasi' => $p->perluPilihLokasi(),
             'nama_asesi' => $p->dataDiri?->nama_lengkap,
             'kode_asesi' => $p->dataDiri?->kode_asesi,
@@ -53,6 +55,7 @@ class PermohonanPresenter
             'riwayatLokasi.tukLama',
             'riwayatLokasi.tukBaru',
             'riwayatLokasi.user',
+            'riwayatStatus.user',
         ]);
 
         $d = $p->dataDiri;
@@ -64,7 +67,7 @@ class PermohonanPresenter
             'cek_dokumen' => (object) ($p->cek_dokumen ?? []),
             'verifikator' => $p->verifikator?->email,
             'skema' => [
-                ...$p->skema->only(['id_skema', 'judul', 'nomor']),
+                ...$p->skema->only(['id_skema', 'ulid', 'judul', 'nomor']),
                 'unit_kompetensi' => $p->skema->unitKompetensi
                     ->sortBy([['urutan', 'asc'], ['kode', 'asc']])
                     ->map->only(['id_unit_kompetensi', 'kode', 'judul'])
@@ -76,7 +79,11 @@ class PermohonanPresenter
                 'nik' => $d->nik,
                 'tempat_tgl_lahir' => trim(($d->tempat_lahir ?? '-').', '.($d->tgl_lahir?->locale('id')->translatedFormat('d F Y') ?? '-')),
                 'jenis_kelamin' => DataDiri::JENIS_KELAMIN[$d->jenis_kelamin] ?? '-',
-                'kebangsaan' => $d->negara?->nama_negara,
+                'kebangsaan' => match ($d->negara?->nama_negara) {
+                    null => null,
+                    'Indonesia' => 'WNI',
+                    default => "WNA ({$d->negara->nama_negara})",
+                },
                 'alamat_ktp' => $d->alamat_ktp,
                 'alamat_domisili' => collect([$d->alamat_domisili, $d->kelurahan, $d->kecamatan, $d->kota, $d->provinsi, $d->kode_pos])->filter()->implode(', '),
                 'no_telp' => $d->no_telp,
@@ -90,6 +97,16 @@ class PermohonanPresenter
                 'email_kantor' => $d->email_kantor,
             ],
             'dokumen' => self::dokumen($p),
+            'riwayat_status' => $p->riwayatStatus
+                ->map(fn (RiwayatStatusPermohonan $r) => [
+                    'id_riwayat_status' => $r->id_riwayat_status,
+                    'status' => $r->status->value,
+                    'label' => $r->status->label(),
+                    'catatan' => $r->catatan,
+                    'oleh' => $r->user?->role->label(),
+                    'waktu' => $r->created_at?->locale('id')->translatedFormat('d M Y H:i'),
+                ])
+                ->values(),
             'riwayat_lokasi' => $p->riwayatLokasi
                 ->map(fn (RiwayatLokasiPermohonan $r) => [
                     'id_riwayat' => $r->id_riwayat,
@@ -125,7 +142,7 @@ class PermohonanPresenter
                 'ada' => filled($path),
                 'nama_file' => $path ? ($unggahan->get($jenis->value)?->nama_asli ?? basename($path)) : null,
                 'ukuran' => $unggahan->get($jenis->value)?->ukuran,
-                'url' => $path ? route('dokumen.permohonan', [$p->id_permohonan, $jenis->value]) : null,
+                'url' => $path ? route('dokumen.permohonan', [$p, $jenis->value]) : null,
             ];
         }, JenisDokumen::cases());
     }

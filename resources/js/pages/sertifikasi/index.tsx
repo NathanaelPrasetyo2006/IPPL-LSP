@@ -4,23 +4,28 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PermohonanRingkas, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox, MapPinOff } from 'lucide-react';
+import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox, Info, MapPinOff, PencilLine } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pendaftaran Sertifikasi', href: '/sertifikasi' }];
 
 interface PeriodeDibuka {
     id_periode: number;
+    ulid: string;
     nama: string;
     keterangan: string | null;
     tanggal_buka: string;
     tanggal_tutup: string;
     kuota_penuh: boolean;
+    /** Judul skema yang sudah didaftarkan pada periode ini (satu periode satu skema). */
+    skema_terdaftar: string | null;
     skema: {
         id_skema: number;
+        ulid: string;
         judul: string;
         nomor: string;
         unit_kompetensi_count: number;
-        sudah_mendaftar: boolean;
+        keadaan: 'daftar' | 'terdaftar' | 'terkunci' | 'perbaiki';
+        permohonan_ulid: string | null;
     }[];
 }
 
@@ -102,6 +107,16 @@ export default function SertifikasiIndex({ kodeAsesi, periode, permohonan }: Ind
                                     <p className="text-muted-foreground border-b px-5 py-3 text-sm whitespace-pre-line">{item.keterangan}</p>
                                 )}
 
+                                {item.skema_terdaftar && (
+                                    <p className="flex items-start gap-2 border-b bg-sky-50/60 px-5 py-3 text-sm text-sky-900 dark:bg-sky-950/30 dark:text-sky-200">
+                                        <Info className="mt-0.5 size-4 shrink-0" />
+                                        <span>
+                                            Anda sudah mendaftar skema <span className="font-medium">{item.skema_terdaftar}</span>. Satu periode hanya
+                                            untuk satu skema; batalkan permohonan tersebut (selama belum diverifikasi) bila salah memilih skema.
+                                        </span>
+                                    </p>
+                                )}
+
                                 <ul className="divide-y">
                                     {item.skema.map((skema) => (
                                         <li key={skema.id_skema} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center">
@@ -116,17 +131,31 @@ export default function SertifikasiIndex({ kodeAsesi, periode, permohonan }: Ind
                                                 </p>
                                             </div>
 
-                                            {skema.sudah_mendaftar ? (
-                                                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                            {skema.keadaan === 'terdaftar' ? (
+                                                <Link
+                                                    href={route('sertifikasi.show', skema.permohonan_ulid ?? '')}
+                                                    className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                                                >
                                                     <CircleCheck className="size-4" />
                                                     Sudah mendaftar
-                                                </span>
+                                                </Link>
+                                            ) : skema.keadaan === 'terkunci' ? (
+                                                <Button size="sm" disabled title="Satu periode hanya untuk satu skema">
+                                                    Daftar
+                                                </Button>
+                                            ) : skema.keadaan === 'perbaiki' ? (
+                                                <Button asChild size="sm" variant="outline">
+                                                    <Link href={route('sertifikasi.perbaiki', skema.permohonan_ulid ?? '')}>
+                                                        <PencilLine />
+                                                        Perbaiki permohonan
+                                                    </Link>
+                                                </Button>
                                             ) : (
                                                 <Button asChild={!item.kuota_penuh} disabled={item.kuota_penuh} size="sm">
                                                     {item.kuota_penuh ? (
                                                         <span>Daftar</span>
                                                     ) : (
-                                                        <Link href={route('sertifikasi.create', [item.id_periode, skema.id_skema])}>
+                                                        <Link href={route('sertifikasi.create', [item.ulid, skema.ulid])}>
                                                             Daftar
                                                             <ArrowRight />
                                                         </Link>
@@ -154,7 +183,7 @@ export default function SertifikasiIndex({ kodeAsesi, periode, permohonan }: Ind
                             {permohonan.map((item) => (
                                 <li key={item.id_permohonan}>
                                     <Link
-                                        href={route('sertifikasi.show', item.id_permohonan)}
+                                        href={route('sertifikasi.show', item.ulid)}
                                         className="hover:bg-muted/40 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"
                                     >
                                         <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">

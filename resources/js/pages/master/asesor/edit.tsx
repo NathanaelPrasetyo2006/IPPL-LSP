@@ -22,6 +22,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface EditAsesorProps {
     asesor: {
         id_asesor: number;
+        ulid: string;
         nama: string;
         no_reg: string;
         email: string | null;
@@ -39,7 +40,7 @@ export default function EditAsesor({ asesor }: EditAsesorProps) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        put(route('master.asesor.update', asesor.id_asesor));
+        put(route('master.asesor.update', asesor.ulid));
     };
 
     return (

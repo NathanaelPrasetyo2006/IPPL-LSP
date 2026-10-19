@@ -28,7 +28,7 @@ export default function EditSkemaSertifikasi({ skema }: { skema: SkemaSertifikas
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        put(route('master.skema-sertifikasi.update', skema.id_skema));
+        put(route('master.skema-sertifikasi.update', skema.ulid));
     };
 
     return (

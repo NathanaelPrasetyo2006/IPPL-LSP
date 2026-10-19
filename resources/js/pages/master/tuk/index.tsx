@@ -55,7 +55,7 @@ export default function TukIndex({ tuk, filters }: IndexProps) {
             return;
         }
 
-        router.delete(route('master.tuk.destroy', target.id_tuk), {
+        router.delete(route('master.tuk.destroy', target.ulid), {
             preserveScroll: true,
             onStart: () => setDeleting(true),
             onFinish: () => {
@@ -144,7 +144,7 @@ export default function TukIndex({ tuk, filters }: IndexProps) {
                                     <TableCell className="align-top whitespace-normal">
                                         {isAdmin ? (
                                             <Link
-                                                href={route('master.tuk.edit', item.id_tuk)}
+                                                href={route('master.tuk.edit', item.ulid)}
                                                 className="font-medium text-amber-700 hover:underline dark:text-amber-500"
                                             >
                                                 {item.nama}
@@ -166,7 +166,7 @@ export default function TukIndex({ tuk, filters }: IndexProps) {
                                                     asChild
                                                     title="Ubah TUK"
                                                 >
-                                                    <Link href={route('master.tuk.edit', item.id_tuk)}>
+                                                    <Link href={route('master.tuk.edit', item.ulid)}>
                                                         <Pencil />
                                                         <span className="sr-only">Ubah {item.nama}</span>
                                                     </Link>

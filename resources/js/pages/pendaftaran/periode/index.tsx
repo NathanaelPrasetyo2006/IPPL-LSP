@@ -37,7 +37,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
             return;
         }
 
-        router.delete(route('pendaftaran.periode.destroy', target.id_periode), {
+        router.delete(route('pendaftaran.periode.destroy', target.ulid), {
             preserveScroll: true,
             onStart: () => setDeleting(true),
             onFinish: () => {
@@ -49,7 +49,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
 
     const toggle = (item: PeriodePendaftaran) => {
         router.patch(
-            route('pendaftaran.periode.toggle', item.id_periode),
+            route('pendaftaran.periode.toggle', item.ulid),
             {},
             {
                 preserveScroll: true,
@@ -136,7 +136,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
                                 <TableRow key={item.id_periode}>
                                     <TableCell className="pl-5">
                                         <Link
-                                            href={route('pendaftaran.periode.show', item.id_periode)}
+                                            href={route('pendaftaran.periode.show', item.ulid)}
                                             className="font-medium text-amber-700 hover:underline dark:text-amber-500"
                                         >
                                             {item.nama}
@@ -162,7 +162,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
 
                                     <TableCell className="text-sm tabular-nums">
                                         <Link
-                                            href={route('pendaftaran.verifikasi.index', { periode: item.id_periode, status: 'semua' })}
+                                            href={route('pendaftaran.verifikasi.index', { periode: item.ulid, status: 'semua' })}
                                             className="hover:underline"
                                         >
                                             {item.kuota ? `${item.kuota_terpakai} / ${item.kuota}` : item.jumlah_permohonan}
@@ -187,7 +187,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
                                                 asChild
                                                 title="Lihat detail & pendaftar"
                                             >
-                                                <Link href={route('pendaftaran.periode.show', item.id_periode)}>
+                                                <Link href={route('pendaftaran.periode.show', item.ulid)}>
                                                     <Eye />
                                                     <span className="sr-only">Lihat detail {item.nama}</span>
                                                 </Link>
@@ -218,7 +218,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
                                                 asChild
                                                 title="Ubah periode"
                                             >
-                                                <Link href={route('pendaftaran.periode.edit', item.id_periode)}>
+                                                <Link href={route('pendaftaran.periode.edit', item.ulid)}>
                                                     <Pencil />
                                                     <span className="sr-only">Ubah {item.nama}</span>
                                                 </Link>

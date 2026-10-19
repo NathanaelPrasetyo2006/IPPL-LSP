@@ -24,11 +24,13 @@ class VerifikasiPermohonanController extends Controller
     public function index(Request $request): Response
     {
         $status = StatusPermohonan::tryFrom((string) $request->query('status', 'diajukan'));
-        $idPeriode = $request->integer('periode') ?: null;
+        // Filter periode memakai kode acak (ulid), bukan id, supaya id tidak tampil di URL.
+        $periodeDipilih = PeriodePendaftaran::query()->where('ulid', (string) $request->query('periode'))->first();
+        $idPeriode = $periodeDipilih?->id_periode;
         $search = trim((string) $request->query('search', ''));
 
         $permohonan = PermohonanSertifikasi::query()
-            ->with(['dataDiri:id_data_diri,nama_lengkap,kode_asesi', 'skema:id_skema,judul,nomor', 'periode:id_periode,nama'])
+            ->with(['dataDiri:id_data_diri,nama_lengkap,kode_asesi', 'skema:id_skema,judul,nomor', 'periode:id_periode,ulid,nama'])
             ->when($status, fn ($query) => $query->where('status', $status))
             ->when($idPeriode, fn ($query) => $query->where('id_periode', $idPeriode))
             ->when($search !== '', function ($query) use ($search) {
@@ -58,15 +60,16 @@ class VerifikasiPermohonanController extends Controller
             'permohonan' => $permohonan,
             'filters' => [
                 'status' => $status?->value ?? 'semua',
-                'periode' => $idPeriode,
+                'periode' => $periodeDipilih?->ulid,
                 'search' => $search,
             ],
             'stats' => [
                 'diajukan' => (int) ($hitung[StatusPermohonan::Diajukan->value] ?? 0),
                 'diterima' => (int) ($hitung[StatusPermohonan::Diterima->value] ?? 0),
                 'ditolak' => (int) ($hitung[StatusPermohonan::Ditolak->value] ?? 0),
+                'dibatalkan' => (int) ($hitung[StatusPermohonan::Dibatalkan->value] ?? 0),
             ],
-            'periodeOptions' => PeriodePendaftaran::query()->orderByDesc('tanggal_buka')->pluck('nama', 'id_periode'),
+            'periodeOptions' => PeriodePendaftaran::query()->orderByDesc('tanggal_buka')->pluck('nama', 'ulid'),
         ]);
     }
 
@@ -93,6 +96,8 @@ class VerifikasiPermohonanController extends Controller
             'diverifikasi_pada' => now(),
         ]);
 
+        $permohonan->catatStatus($permohonan->status, $data['catatan'] ?? null, $request->user());
+
         $permohonan->load(['dataDiri.user', 'skema', 'periode']);
         $label = $permohonan->status->label();
 
@@ -102,11 +107,11 @@ class VerifikasiPermohonanController extends Controller
             // Keputusan tetap sah; notifikasi di aplikasi sudah tersimpan sebelum email dicoba.
             report($e);
 
-            return to_route('pendaftaran.verifikasi.show', $permohonan->id_permohonan)
+            return to_route('pendaftaran.verifikasi.show', $permohonan)
                 ->with('error', "Permohonan {$permohonan->nomor} ditandai {$label}, tetapi email notifikasi gagal dikirim. Periksa pengaturan email (MAIL_*) di .env.");
         }
 
-        return to_route('pendaftaran.verifikasi.show', $permohonan->id_permohonan)
+        return to_route('pendaftaran.verifikasi.show', $permohonan)
             ->with('success', "Permohonan {$permohonan->nomor} ditandai {$label}. Notifikasi sudah dikirim ke {$permohonan->dataDiri->user->email}.");
     }
 }

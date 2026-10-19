@@ -1,5 +1,6 @@
 import InputError from '@/components/input-error';
 import PilihLokasi from '@/components/pendaftaran/pilih-lokasi';
+import PilihWilayah from '@/components/pendaftaran/pilih-wilayah';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -46,6 +47,7 @@ type Profil = {
 };
 
 type Apl01Form = Profil & {
+    kebangsaan: 'wni' | 'wna';
     tujuan_asesmen: string;
     tujuan_asesmen_lainnya: string;
     id_tuk: string;
@@ -54,17 +56,34 @@ type Apl01Form = Profil & {
 };
 
 interface CreateProps {
-    periode: { id_periode: number; nama: string; tanggal_tutup: string };
-    skema: { id_skema: number; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
+    periode: { id_periode: number; ulid: string; nama: string; tanggal_tutup: string };
+    skema: {
+        id_skema: number;
+        ulid: string;
+        judul: string;
+        nomor: string;
+        unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[];
+    };
     /** Lokasi uji yang tersedia untuk skema ini pada periode terpilih. */
     lokasi: Tuk[];
     kodeAsesi: string | null;
     email: string;
     profil: Partial<Record<keyof Profil, string | number | null>>;
-    /** URL dokumen identitas yang sudah tersimpan di profil, per jenis. */
-    dokumenIdentitas: Record<string, string | null>;
+    /** URL dokumen yang sudah tersimpan per jenis: identitas dari profil, dokumen lain dari permohonan yang diperbaiki. */
+    dokumenTersimpan: Record<string, string | null>;
+    /** Terisi saat memperbaiki permohonan yang ditolak; null untuk pendaftaran baru. */
+    perbaikan: {
+        ulid: string;
+        nomor: string;
+        catatan_verifikasi: string | null;
+        tujuan_asesmen: string;
+        tujuan_asesmen_lainnya: string | null;
+        id_tuk: number | null;
+    } | null;
     options: {
+        /** Negara selain Indonesia, untuk WNA. */
         negara: Record<string, string>;
+        id_indonesia: number | null;
         jenis_kelamin: Record<string, string>;
         pendidikan: Record<string, string>;
         tujuan_asesmen: Record<string, string>;
@@ -147,10 +166,12 @@ function SelectField({
     );
 }
 
-export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, profil, dokumenIdentitas, options }: CreateProps) {
+export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, profil, dokumenTersimpan, perbaikan, options }: CreateProps) {
     const awal = (key: keyof Profil) => (profil[key] === null || profil[key] === undefined ? '' : String(profil[key]));
 
     const { data, setData, post, errors, processing, transform } = useForm<Apl01Form>({
+        // Profil tanpa negara atau berkebangsaan Indonesia dianggap WNI.
+        kebangsaan: !awal('id_negara') || awal('id_negara') === String(options.id_indonesia) ? 'wni' : 'wna',
         nama_lengkap: awal('nama_lengkap'),
         nik: awal('nik'),
         tempat_lahir: awal('tempat_lahir'),
@@ -174,10 +195,14 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         kode_pos_kantor: awal('kode_pos_kantor'),
         telp_kantor: awal('telp_kantor'),
         email_kantor: awal('email_kantor'),
-        tujuan_asesmen: 'sertifikasi',
-        tujuan_asesmen_lainnya: '',
-        // Bila hanya ada satu lokasi, langsung terpilih.
-        id_tuk: lokasi.length === 1 ? lokasi[0].id_tuk.toString() : '',
+        tujuan_asesmen: perbaikan?.tujuan_asesmen ?? 'sertifikasi',
+        tujuan_asesmen_lainnya: perbaikan?.tujuan_asesmen_lainnya ?? '',
+        // Lokasi sebelumnya dipakai lagi bila masih tersedia; bila hanya ada satu lokasi, langsung terpilih.
+        id_tuk: lokasi.some((tuk) => tuk.id_tuk === perbaikan?.id_tuk)
+            ? String(perbaikan?.id_tuk)
+            : lokasi.length === 1
+              ? lokasi[0].id_tuk.toString()
+              : '',
         pernyataan: false,
         dokumen: {},
     });
@@ -213,7 +238,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        post(route('sertifikasi.store', [periode.id_periode, skema.id_skema]), {
+        post(perbaikan ? route('sertifikasi.perbaiki.store', perbaikan.ulid) : route('sertifikasi.store', [periode.ulid, skema.ulid]), {
             forceFormData: true,
             preserveScroll: (page) => Object.keys(page.props.errors).length > 0,
             onError: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
@@ -235,12 +260,14 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Formulir APL-01" />
+            <Head title={perbaikan ? `Perbaiki ${perbaikan.nomor}` : 'Formulir APL-01'} />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div>
                     <p className="text-muted-foreground text-sm font-medium">FR-APL-01</p>
-                    <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Permohonan Sertifikasi Kompetensi</h1>
+                    <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+                        {perbaikan ? `Perbaiki Permohonan ${perbaikan.nomor}` : 'Permohonan Sertifikasi Kompetensi'}
+                    </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         Skema <span className="text-foreground font-medium">{skema.judul}</span> · {periode.nama} · pendaftaran ditutup{' '}
                         <span className="text-foreground font-medium">{periode.tanggal_tutup}</span>
@@ -252,6 +279,16 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                         )}
                     </p>
                 </div>
+
+                {perbaikan && (
+                    <Alert className="max-w-5xl border-red-500/40 bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200">
+                        <AlertDescription>
+                            <p className="font-medium">Permohonan ini ditolak. Perbaiki sesuai catatan verifikator, lalu ajukan ulang.</p>
+                            {perbaikan.catatan_verifikasi && <p className="mt-1 whitespace-pre-line">{perbaikan.catatan_verifikasi}</p>}
+                            <p className="mt-1 text-xs opacity-80">Dokumen yang sudah tersimpan tetap dipakai; unggah hanya yang perlu diganti.</p>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {jumlahError > 0 && (
                     <Alert variant="destructive" className="max-w-5xl">
@@ -299,15 +336,58 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
-                            <Field id="id_negara" label="Kebangsaan" error={err.id_negara} required>
-                                <SelectField
-                                    id="id_negara"
-                                    value={data.id_negara}
-                                    onChange={(value) => setData('id_negara', value)}
-                                    options={options.negara}
-                                    placeholder="Pilih negara"
-                                />
-                            </Field>
+                            <div className="grid content-start gap-3">
+                                <Field id="kebangsaan" label="Kebangsaan" error={err.kebangsaan} required>
+                                    <div className="grid grid-cols-2 gap-2" role="radiogroup">
+                                        {(
+                                            [
+                                                ['wni', 'WNI'],
+                                                ['wna', 'WNA'],
+                                            ] as const
+                                        ).map(([value, label]) => (
+                                            <label
+                                                key={value}
+                                                className={cn(
+                                                    'hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm',
+                                                    data.kebangsaan === value && 'border-primary bg-muted/50',
+                                                )}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="kebangsaan"
+                                                    value={value}
+                                                    checked={data.kebangsaan === value}
+                                                    onChange={() => {
+                                                        setData('kebangsaan', value);
+                                                        setData(
+                                                            'id_negara',
+                                                            value === 'wni'
+                                                                ? String(options.id_indonesia ?? '')
+                                                                : data.id_negara === String(options.id_indonesia)
+                                                                  ? ''
+                                                                  : data.id_negara,
+                                                        );
+                                                    }}
+                                                    className="accent-primary size-4"
+                                                />
+                                                {label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </Field>
+
+                                {data.kebangsaan === 'wna' && (
+                                    <Field id="id_negara" label="Negara asal" error={err.id_negara} required>
+                                        <SelectField
+                                            id="id_negara"
+                                            value={data.id_negara}
+                                            onChange={(value) => setData('id_negara', value)}
+                                            options={options.negara}
+                                            placeholder="Pilih negara"
+                                        />
+                                    </Field>
+                                )}
+                            </div>
 
                             <Field id="no_telp" label="No. HP / WhatsApp" error={err.no_telp} required>
                                 <Input {...text('no_telp')} type="tel" required autoComplete="tel" />
@@ -354,23 +434,13 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                             {domisiliSama && <InputError message={err.alamat_domisili} />}
                         </div>
 
+                        <PilihWilayah
+                            value={{ provinsi: data.provinsi, kota: data.kota, kecamatan: data.kecamatan, kelurahan: data.kelurahan }}
+                            onChange={(perubahan) => setData((current) => ({ ...current, ...perubahan }))}
+                            errors={err}
+                        />
+
                         <div className="grid gap-6 md:grid-cols-2">
-                            <Field id="kelurahan" label="Kelurahan / desa" error={err.kelurahan} required>
-                                <Input {...text('kelurahan')} required />
-                            </Field>
-
-                            <Field id="kecamatan" label="Kecamatan" error={err.kecamatan} required>
-                                <Input {...text('kecamatan')} required />
-                            </Field>
-
-                            <Field id="kota" label="Kota / kabupaten" error={err.kota} required>
-                                <Input {...text('kota')} required autoComplete="address-level2" />
-                            </Field>
-
-                            <Field id="provinsi" label="Provinsi" error={err.provinsi} required>
-                                <Input {...text('provinsi')} required autoComplete="address-level1" />
-                            </Field>
-
                             <Field id="kode_pos" label="Kode pos" error={err.kode_pos} required>
                                 <Input {...digits('kode_pos', 5)} required autoComplete="postal-code" />
                             </Field>
@@ -520,7 +590,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
 
                                 <ul className="divide-y rounded-lg border">
                                     {items.map((def) => {
-                                        const tersimpan = dokumenIdentitas[def.jenis] ?? null;
+                                        const tersimpan = dokumenTersimpan[def.jenis] ?? null;
                                         const dipilih = data.dokumen[def.jenis] ?? null;
                                         const wajib = def.wajib && !tersimpan;
                                         const error = err[`dokumen.${def.jenis}`];
@@ -558,7 +628,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                                                     lihat
                                                                     <ExternalLink className="size-3" />
                                                                 </a>{' '}
-                                                                · unggah untuk mengganti
+                                                                · pilih "Ganti file" bila perlu diganti
                                                             </>
                                                         ) : (
                                                             <>
@@ -576,7 +646,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                                     className="border-input hover:bg-muted inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium whitespace-nowrap"
                                                 >
                                                     <FileUp className="size-4" />
-                                                    {dipilih ? 'Ganti file' : 'Pilih file'}
+                                                    {dipilih || tersimpan ? 'Ganti file' : 'Pilih file'}
                                                 </label>
 
                                                 <input
@@ -628,7 +698,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
 
                         <Button type="submit" disabled={processing || !data.pernyataan} className="sm:ml-auto">
                             {processing && <LoaderCircle className="animate-spin" />}
-                            Ajukan permohonan
+                            {perbaikan ? 'Ajukan ulang permohonan' : 'Ajukan permohonan'}
                         </Button>
                     </div>
                 </form>

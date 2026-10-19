@@ -1,19 +1,23 @@
 import InputError from '@/components/input-error';
-import { DataPemohon, DataSertifikasi, DokumenList, Panel } from '@/components/pendaftaran/permohonan-detail';
+import { DataPemohon, DataSertifikasi, DokumenList, Panel, RiwayatPermohonan } from '@/components/pendaftaran/permohonan-detail';
 import PilihLokasi from '@/components/pendaftaran/pilih-lokasi';
 import { StatusPermohonanBadge } from '@/components/pendaftaran/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type PermohonanDetail, type SharedData, type Tuk } from '@/types';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, CircleCheck, CircleX, Clock, MapPinOff, RotateCcw } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, Ban, CircleCheck, CircleX, Clock, LoaderCircle, MapPinOff, PencilLine } from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 interface ShowProps {
     permohonan: PermohonanDetail;
-    bisaDaftarUlang: boolean;
+    /** Permohonan ditolak yang masih bisa diperbaiki dan diajukan lagi. */
+    bisaPerbaiki: boolean;
+    /** Masih menunggu verifikasi, jadi asesi boleh membatalkannya sendiri. */
+    bisaBatal: boolean;
     /** Lokasi yang bisa dipilih bila lokasi sebelumnya dihapus admin. */
     lokasiTersedia: Tuk[];
 }
@@ -36,22 +40,36 @@ const HASIL = {
     ditolak: {
         icon: CircleX,
         judul: 'Permohonan ditolak',
-        pesan: 'Berkas Anda belum memenuhi persyaratan. Perbaiki sesuai catatan verifikator lalu ajukan permohonan baru.',
+        pesan: 'Berkas Anda belum memenuhi persyaratan. Perbaiki sesuai catatan verifikator lalu ajukan ulang permohonan ini.',
         className: 'border-red-500/40 bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200',
         iconClass: 'bg-red-600',
     },
+    dibatalkan: {
+        icon: Ban,
+        judul: 'Permohonan dibatalkan',
+        pesan: 'Permohonan ini sudah Anda batalkan dan tidak diperiksa admin. Silakan daftar skema lain bila periode masih dibuka.',
+        className: 'border-slate-400/40 bg-slate-50 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
+        iconClass: 'bg-slate-500',
+    },
 };
 
-export default function ShowPermohonan({ permohonan, bisaDaftarUlang, lokasiTersedia }: ShowProps) {
+export default function ShowPermohonan({ permohonan, bisaPerbaiki, bisaBatal, lokasiTersedia }: ShowProps) {
     const { flash } = usePage<SharedData>().props;
     const hasil = HASIL[permohonan.status];
+
+    const [konfirmasiBatal, setKonfirmasiBatal] = useState(false);
+    const [membatalkan, setMembatalkan] = useState(false);
+
+    const batalkan = () => {
+        router.post(route('sertifikasi.batal', permohonan.ulid), {}, { onStart: () => setMembatalkan(true), onFinish: () => setMembatalkan(false) });
+    };
 
     const lokasiForm = useForm({ id_tuk: lokasiTersedia.length === 1 ? lokasiTersedia[0].id_tuk.toString() : '' });
 
     const simpanLokasi: FormEventHandler = (e) => {
         e.preventDefault();
 
-        lokasiForm.put(route('sertifikasi.lokasi', permohonan.id_permohonan), { preserveScroll: true });
+        lokasiForm.put(route('sertifikasi.lokasi', permohonan.ulid), { preserveScroll: true });
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -151,12 +169,19 @@ export default function ShowPermohonan({ permohonan, bisaDaftarUlang, lokasiTers
                         {permohonan.diverifikasi_pada && <p className="mt-2 text-xs opacity-70">Diverifikasi {permohonan.diverifikasi_pada}</p>}
                     </div>
 
-                    {bisaDaftarUlang && permohonan.periode && (
+                    {bisaPerbaiki && (
                         <Button asChild className="shrink-0">
-                            <Link href={route('sertifikasi.create', [permohonan.periode.id_periode, permohonan.skema.id_skema])}>
-                                <RotateCcw />
-                                Ajukan ulang
+                            <Link href={route('sertifikasi.perbaiki', permohonan.ulid)}>
+                                <PencilLine />
+                                Perbaiki &amp; ajukan ulang
                             </Link>
+                        </Button>
+                    )}
+
+                    {bisaBatal && (
+                        <Button variant="outline" className="shrink-0 bg-white/70 dark:bg-transparent" onClick={() => setKonfirmasiBatal(true)}>
+                            <Ban />
+                            Batalkan permohonan
                         </Button>
                     )}
                 </div>
@@ -170,9 +195,33 @@ export default function ShowPermohonan({ permohonan, bisaDaftarUlang, lokasiTers
                         <Panel title="Bagian 3 · Bukti Kelengkapan">
                             <DokumenList dokumen={permohonan.dokumen} cek={permohonan.status === 'diajukan' ? undefined : permohonan.cek_dokumen} />
                         </Panel>
+
+                        <RiwayatPermohonan riwayat={permohonan.riwayat_status} />
                     </div>
                 </div>
             </div>
+
+            <Dialog open={konfirmasiBatal} onOpenChange={(open) => !membatalkan && setKonfirmasiBatal(open)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Batalkan permohonan {permohonan.nomor}?</DialogTitle>
+                        <DialogDescription>
+                            Permohonan skema <span className="text-foreground font-medium">{permohonan.skema.judul}</span> tidak akan diperiksa admin.
+                            Setelah dibatalkan, Anda bisa mendaftar skema lain selama periode masih dibuka.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setKonfirmasiBatal(false)} disabled={membatalkan}>
+                            Tidak jadi
+                        </Button>
+                        <Button variant="destructive" onClick={batalkan} disabled={membatalkan}>
+                            {membatalkan && <LoaderCircle className="size-4 animate-spin" />}
+                            Ya, batalkan
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

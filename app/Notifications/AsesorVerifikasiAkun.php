@@ -46,7 +46,7 @@ class AsesorVerifikasiAkun extends Notification
     public static function url(User $user): string
     {
         return URL::temporarySignedRoute('asesor.verifikasi', now()->addHours(self::BERLAKU_JAM), [
-            'user' => $user->id_user,
+            'user' => $user,
             'hash' => sha1($user->email),
         ]);
     }

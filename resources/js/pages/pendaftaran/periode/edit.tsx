@@ -16,6 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface EditPeriodeProps {
     periode: {
         id_periode: number;
+        ulid: string;
         nama: string;
         tanggal_buka: string;
         tanggal_tutup: string;
@@ -130,7 +131,7 @@ export default function EditPeriode({ periode, skemaTerpakai, sudahDibuka, penda
     };
 
     const simpan = () => {
-        put(route('pendaftaran.periode.update', periode.id_periode), {
+        put(route('pendaftaran.periode.update', periode.ulid), {
             onFinish: () => setKonfirmasi(false),
         });
     };

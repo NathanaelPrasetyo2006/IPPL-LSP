@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Pendaftar {
     id_permohonan: number;
+    ulid: string;
     nomor: string;
     kode_asesi: string | null;
     nama: string | null;
@@ -26,6 +27,7 @@ interface Pendaftar {
 interface ShowPeriodeProps {
     periode: {
         id_periode: number;
+        ulid: string;
         nama: string;
         tanggal_buka: string;
         tanggal_tutup: string;
@@ -33,11 +35,11 @@ interface ShowPeriodeProps {
         kuota_terpakai: number;
         keterangan: string | null;
         status: StatusPeriode;
-        skema: { id_skema: number; judul: string; nomor: string; jumlah_pendaftar: number }[];
+        skema: { id_skema: number; ulid: string; judul: string; nomor: string; jumlah_pendaftar: number }[];
         lokasi: { nama: string; alamat: string; skema: string[] }[];
     };
     pendaftar: Paginated<Pendaftar>;
-    filters: { skema: number | null; search: string };
+    filters: { skema: string | null; search: string };
 }
 
 const SEMUA = 'semua';
@@ -61,8 +63,8 @@ export default function ShowPeriode({ periode, pendaftar, filters }: ShowPeriode
         { title: periode.nama, href: '#' },
     ];
 
-    const visit = (skema: number | null, keyword: string) => {
-        const query: Record<string, string | number> = {};
+    const visit = (skema: string | null, keyword: string) => {
+        const query: Record<string, string> = {};
 
         if (skema) {
             query.skema = skema;
@@ -72,7 +74,7 @@ export default function ShowPeriode({ periode, pendaftar, filters }: ShowPeriode
             query.search = keyword;
         }
 
-        router.get(route('pendaftaran.periode.show', periode.id_periode), query, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(route('pendaftaran.periode.show', periode.ulid), query, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     // Pencarian dikirim setelah user berhenti mengetik supaya tidak membanjiri request.
@@ -112,7 +114,7 @@ export default function ShowPeriode({ periode, pendaftar, filters }: ShowPeriode
                             </Link>
                         </Button>
                         <Button asChild>
-                            <Link href={route('pendaftaran.periode.edit', periode.id_periode)}>
+                            <Link href={route('pendaftaran.periode.edit', periode.ulid)}>
                                 <Pencil />
                                 Ubah
                             </Link>
@@ -185,17 +187,14 @@ export default function ShowPeriode({ periode, pendaftar, filters }: ShowPeriode
                         </div>
 
                         <div className="flex flex-col gap-2 sm:flex-row">
-                            <Select
-                                value={filters.skema?.toString() ?? SEMUA}
-                                onValueChange={(value) => visit(value === SEMUA ? null : Number(value), search)}
-                            >
+                            <Select value={filters.skema ?? SEMUA} onValueChange={(value) => visit(value === SEMUA ? null : value, search)}>
                                 <SelectTrigger className="sm:w-64" aria-label="Filter skema">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value={SEMUA}>Semua skema</SelectItem>
                                     {periode.skema.map((skema) => (
-                                        <SelectItem key={skema.id_skema} value={skema.id_skema.toString()}>
+                                        <SelectItem key={skema.id_skema} value={skema.ulid}>
                                             {skema.judul}
                                         </SelectItem>
                                     ))}
@@ -242,7 +241,7 @@ export default function ShowPeriode({ periode, pendaftar, filters }: ShowPeriode
                                     <TableCell className="pl-5 font-mono text-xs">{item.kode_asesi ?? '-'}</TableCell>
                                     <TableCell>
                                         <Link
-                                            href={route('pendaftaran.verifikasi.show', item.id_permohonan)}
+                                            href={route('pendaftaran.verifikasi.show', item.ulid)}
                                             className="font-medium text-amber-700 hover:underline dark:text-amber-500"
                                         >
                                             {item.nama ?? '-'}

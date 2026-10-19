@@ -50,7 +50,7 @@ class HasilVerifikasiApl01 extends Notification
             ->line($diterima
                 ? 'Informasi jadwal asesmen akan disampaikan selanjutnya oleh admin LSP.'
                 : 'Silakan perbaiki berkas sesuai catatan di atas, lalu ajukan permohonan baru selama periode pendaftaran masih dibuka.')
-            ->action('Lihat Permohonan', route('sertifikasi.show', $p->id_permohonan))
+            ->action('Lihat Permohonan', route('sertifikasi.show', $p))
             ->salutation('Salam, Admin LSP');
     }
 
@@ -67,7 +67,7 @@ class HasilVerifikasiApl01 extends Notification
             'pesan' => $diterima
                 ? "Permohonan {$p->nomor} untuk skema {$p->skema->judul} diterima."
                 : "Permohonan {$p->nomor} untuk skema {$p->skema->judul} ditolak. Lihat catatan verifikator.",
-            'url' => route('sertifikasi.show', $p->id_permohonan, absolute: false),
+            'url' => route('sertifikasi.show', $p, absolute: false),
             'tipe' => $diterima ? 'sukses' : 'gagal',
         ];
     }

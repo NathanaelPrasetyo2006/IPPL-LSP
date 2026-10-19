@@ -28,7 +28,7 @@ export default function EditTuk({ tuk }: { tuk: Tuk }) {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        put(route('master.tuk.update', tuk.id_tuk));
+        put(route('master.tuk.update', tuk.ulid));
     };
 
     return (

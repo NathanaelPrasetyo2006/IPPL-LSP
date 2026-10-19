@@ -25,12 +25,12 @@ test('asesor can view skema but can not change it', function () {
 
     $this->actingAs($asesor)->get('/master/skema-sertifikasi')->assertOk();
     $this->actingAs($asesor)->get('/master/skema-sertifikasi/create')->assertForbidden();
-    $this->actingAs($asesor)->delete("/master/skema-sertifikasi/{$skema->id_skema}")->assertForbidden();
+    $this->actingAs($asesor)->delete("/master/skema-sertifikasi/{$skema->ulid}")->assertForbidden();
     $this->actingAs($asesor)
-        ->post("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi", ['kode' => 'X', 'judul' => 'X'])
+        ->post("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi", ['kode' => 'X', 'judul' => 'X'])
         ->assertForbidden();
     $this->actingAs($asesor)
-        ->put("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun", ['urutan' => [], 'hapus' => []])
+        ->put("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi/susun", ['urutan' => [], 'hapus' => []])
         ->assertForbidden();
 });
 
@@ -39,7 +39,7 @@ test('new units are appended to the end and updating keeps their order', functio
     UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => 4]);
 
     $this->actingAs($this->admin)
-        ->post("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi", [
+        ->post("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi", [
             'kode' => 'J.620100.001.01',
             'judul' => 'Menganalisis Tools',
             'urutan' => 1, // Diabaikan: urutan selalu ditentukan sistem.
@@ -50,7 +50,7 @@ test('new units are appended to the end and updating keeps their order', functio
     expect($unit->urutan)->toBe(5);
 
     $this->actingAs($this->admin)
-        ->put("/master/unit-kompetensi/{$unit->id_unit_kompetensi}", ['kode' => $unit->kode, 'judul' => 'Judul Baru'])
+        ->put("/master/unit-kompetensi/{$unit->ulid}", ['kode' => $unit->kode, 'judul' => 'Judul Baru'])
         ->assertSessionHasNoErrors();
 
     expect($unit->fresh())->judul->toBe('Judul Baru')->urutan->toBe(5);
@@ -64,7 +64,7 @@ test('saving the arranged list renumbers units and soft deletes removed ones', f
 
     // Unit nomor 1 dihapus, unit nomor 4 diseret ke paling atas.
     $this->actingAs($this->admin)
-        ->put("/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun", [
+        ->put("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi/susun", [
             'urutan' => [$empat->id_unit_kompetensi, $dua->id_unit_kompetensi, $tiga->id_unit_kompetensi],
             'hapus' => [$satu->id_unit_kompetensi],
         ])
@@ -85,7 +85,7 @@ test('arranging is rejected when the list on screen is stale or belongs to anoth
     $baru = UnitKompetensi::factory()->create(['id_skema' => $skema->id_skema, 'urutan' => 2]);
     $milikLain = UnitKompetensi::factory()->create();
 
-    $url = "/master/skema-sertifikasi/{$skema->id_skema}/unit-kompetensi/susun";
+    $url = "/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi/susun";
 
     // Unit $baru tidak ikut terkirim, mis. ditambahkan admin lain setelah halaman dibuka.
     $this->actingAs($this->admin)->put($url, ['urutan' => [$unit->id_unit_kompetensi], 'hapus' => []])->assertSessionHas('error');
@@ -103,18 +103,18 @@ test('unit code must be unique within a skema but may repeat across skema', func
     $skemaLain = SkemaSertifikasi::factory()->create();
 
     $this->actingAs($this->admin)
-        ->post("/master/skema-sertifikasi/{$unit->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Duplikat'])
+        ->post("/master/skema-sertifikasi/{$unit->skema->ulid}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Duplikat'])
         ->assertSessionHasErrors('kode');
 
     $this->actingAs($this->admin)
-        ->post("/master/skema-sertifikasi/{$skemaLain->id_skema}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Skema lain'])
+        ->post("/master/skema-sertifikasi/{$skemaLain->ulid}/unit-kompetensi", ['kode' => $unit->kode, 'judul' => 'Skema lain'])
         ->assertSessionHasNoErrors();
 });
 
 test('deleting a skema is a soft delete and frees its code for reuse', function () {
     $skema = SkemaSertifikasi::factory()->create(['nomor' => 'SKM/001']);
 
-    $this->actingAs($this->admin)->delete("/master/skema-sertifikasi/{$skema->id_skema}")->assertSessionHas('success');
+    $this->actingAs($this->admin)->delete("/master/skema-sertifikasi/{$skema->ulid}")->assertSessionHas('success');
 
     $this->assertSoftDeleted($skema);
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaKodeUrl;
 use Database\Factories\AsesorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Asesor extends Model
 {
     /** @use HasFactory<AsesorFactory> */
-    use HasFactory;
+    use HasFactory, PunyaKodeUrl;
 
     public const JENIS_KELAMIN = [
         'L' => 'Laki-laki',

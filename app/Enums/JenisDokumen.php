@@ -78,7 +78,8 @@ enum JenisDokumen: string
      */
     public function maksKb(): int
     {
-        return $this === self::PasFoto ? 2048 : 5120;
+        // Transkrip nilai, sertifikat, dan portofolio boleh sampai 2 MB; dokumen lain (termasuk pas foto) 1 MB.
+        return in_array($this, [self::Transkrip, self::SertifikatPelatihan, self::Portofolio], true) ? 2048 : 1024;
     }
 
     /**

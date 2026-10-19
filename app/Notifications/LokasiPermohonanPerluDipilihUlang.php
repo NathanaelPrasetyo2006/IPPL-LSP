@@ -40,7 +40,7 @@ class LokasiPermohonanPerluDipilihUlang extends Notification
             ->line("**Skema:** {$p->skema->judul} ({$p->skema->nomor})")
             ->line("**Periode:** {$p->periode->nama}")
             ->line('Silakan buka permohonan Anda dan pilih lokasi uji yang baru.')
-            ->action('Pilih Lokasi Baru', route('sertifikasi.show', $p->id_permohonan))
+            ->action('Pilih Lokasi Baru', route('sertifikasi.show', $p))
             ->salutation('Salam, Admin LSP');
     }
 
@@ -52,7 +52,7 @@ class LokasiPermohonanPerluDipilihUlang extends Notification
         return [
             'judul' => 'Pilih ulang lokasi uji',
             'pesan' => "Lokasi {$this->lokasiLama->nama} untuk permohonan {$this->permohonan->nomor} tidak lagi tersedia. Silakan pilih lokasi baru.",
-            'url' => route('sertifikasi.show', $this->permohonan->id_permohonan, absolute: false),
+            'url' => route('sertifikasi.show', $this->permohonan, absolute: false),
             'tipe' => 'peringatan',
         ];
     }

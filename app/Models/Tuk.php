@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaKodeUrl;
 use Database\Factories\TukFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Tuk extends Model
 {
     /** @use HasFactory<TukFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, PunyaKodeUrl, SoftDeletes;
 
     protected $table = 'tuk';
 

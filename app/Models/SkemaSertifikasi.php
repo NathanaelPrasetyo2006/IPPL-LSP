@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PunyaKodeUrl;
 use Database\Factories\SkemaSertifikasiFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class SkemaSertifikasi extends Model
 {
     /** @use HasFactory<SkemaSertifikasiFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, PunyaKodeUrl, SoftDeletes;
 
     protected $table = 'skema_sertifikasi';
 

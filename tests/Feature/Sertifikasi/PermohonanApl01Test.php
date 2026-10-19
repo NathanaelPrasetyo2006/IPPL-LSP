@@ -35,7 +35,7 @@ beforeEach(function () {
 
 function urlDaftar(PeriodePendaftaran $periode, SkemaSertifikasi $skema): string
 {
-    return "/sertifikasi/daftar/{$periode->id_periode}/{$skema->id_skema}";
+    return "/sertifikasi/daftar/{$periode->ulid}/{$skema->ulid}";
 }
 
 function dataApl01(array $override = []): array
@@ -46,6 +46,7 @@ function dataApl01(array $override = []): array
         'tempat_lahir' => 'Surabaya',
         'tgl_lahir' => '1995-05-17',
         'jenis_kelamin' => 'L',
+        'kebangsaan' => 'wni',
         'id_negara' => test()->idIndonesia,
         'alamat_ktp' => 'Jl. Pahlawan No. 1',
         'alamat_domisili' => 'Jl. Pahlawan No. 1',
@@ -79,7 +80,7 @@ test('asesi sees open periods with their schemes', function () {
             ->component('sertifikasi/index')
             ->has('periode', 1)
             ->where('periode.0.skema.0.id_skema', $this->skema->id_skema)
-            ->where('periode.0.skema.0.sudah_mendaftar', false));
+            ->where('periode.0.skema.0.keadaan', 'daftar'));
 });
 
 test('asesi submits APL-01 and documents are stored in their own folder', function () {
@@ -131,18 +132,129 @@ test('asesi cannot register twice for the same scheme while it is active', funct
     expect(PermohonanSertifikasi::count())->toBe(1);
 });
 
-test('a rejected asesi can apply again and reuse saved identity documents', function () {
+test('a rejected application is fixed and resubmitted as the same application', function () {
     $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
-    PermohonanSertifikasi::sole()->update(['status' => StatusPermohonan::Ditolak]);
+    $permohonan = PermohonanSertifikasi::sole();
+    $ijazahLama = $permohonan->dokumen->firstWhere('jenis.value', 'ijazah')->path;
 
-    $dokumen = dataApl01()['dokumen'];
-    unset($dokumen['ktp'], $dokumen['pas_foto']);
+    $permohonan->update(['status' => StatusPermohonan::Ditolak, 'catatan_verifikasi' => 'Transkrip belum ada.', 'diverifikasi_pada' => now()]);
+    $permohonan->catatStatus(StatusPermohonan::Ditolak, 'Transkrip belum ada.', $this->admin);
+
+    // Mendaftar skema yang sama diarahkan ke perbaikan, bukan permohonan baru.
+    $this->actingAs($this->user)->get(urlDaftar($this->periode, $this->skema))->assertRedirect(route('sertifikasi.perbaiki', $permohonan));
 
     $this->actingAs($this->user)
-        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['dokumen' => $dokumen]))
+        ->get("/sertifikasi/permohonan/{$permohonan->ulid}/perbaiki")
+        ->assertInertia(fn ($page) => $page
+            ->component('sertifikasi/create')
+            ->where('perbaikan.nomor', $permohonan->nomor)
+            ->where('perbaikan.catatan_verifikasi', 'Transkrip belum ada.')
+            ->whereNot('dokumenTersimpan.ijazah', null));
+
+    // Ijazah tidak perlu diunggah ulang; hanya transkrip yang ditambahkan.
+    $this->actingAs($this->user)
+        ->post("/sertifikasi/permohonan/{$permohonan->ulid}/perbaiki", dataApl01([
+            'dokumen' => ['transkrip' => UploadedFile::fake()->create('transkrip.pdf', 300, 'application/pdf')],
+        ]))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('sertifikasi.show', $permohonan));
+
+    $permohonan->refresh();
+
+    expect(PermohonanSertifikasi::count())->toBe(1)
+        ->and($permohonan->status)->toBe(StatusPermohonan::Diajukan)
+        ->and($permohonan->catatan_verifikasi)->toBeNull()
+        ->and($permohonan->dokumen->firstWhere('jenis.value', 'ijazah')->path)->toBe($ijazahLama)
+        ->and($permohonan->dokumen->firstWhere('jenis.value', 'transkrip')->path)->toStartWith(dirname($ijazahLama).'/transkrip_')
+        ->and($permohonan->riwayatStatus->pluck('status')->map->value->all())->toBe(['diajukan', 'ditolak', 'diajukan'])
+        ->and($permohonan->riwayatStatus[1]->catatan)->toBe('Transkrip belum ada.');
+
+    Storage::disk('local')->assertExists($ijazahLama);
+});
+
+test('replacing a document while fixing overwrites the old file in the same folder', function (string $jenis) {
+    $berkas = fn (string $nama) => UploadedFile::fake()->create("{$nama}.pdf", 300, 'application/pdf');
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01([
+        'dokumen' => [...dataApl01()['dokumen'], $jenis => $berkas("{$jenis}-lama")],
+    ]));
+    $permohonan = PermohonanSertifikasi::sole();
+    $pathLama = $permohonan->dokumen()->where('jenis', $jenis)->value('path');
+    $permohonan->update(['status' => StatusPermohonan::Ditolak]);
+
+    $this->actingAs($this->user)
+        ->post("/sertifikasi/permohonan/{$permohonan->ulid}/perbaiki", dataApl01(['dokumen' => [$jenis => $berkas("{$jenis}-baru")]]))
         ->assertSessionHasNoErrors();
 
-    expect(PermohonanSertifikasi::count())->toBe(2);
+    $dokumen = $permohonan->dokumen()->where('jenis', $jenis)->get();
+
+    // Satu file per jenis, di folder permohonan yang sama; file lama dihapus.
+    expect($dokumen)->toHaveCount(1)
+        ->and($dokumen[0]->nama_asli)->toBe("{$jenis}-baru.pdf")
+        ->and(dirname($dokumen[0]->path))->toBe(dirname($pathLama))
+        // Tidak ada folder APL kedua di folder apl-01 asesi.
+        ->and(Storage::disk('local')->directories(dirname(dirname($pathLama))))->toHaveCount(1);
+    Storage::disk('local')->assertMissing($pathLama);
+})->with(['ijazah', 'transkrip', 'sertifikat_pelatihan', 'surat_keterangan_kerja', 'portofolio']);
+
+test('only rejected applications can be fixed', function () {
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $permohonan = PermohonanSertifikasi::sole();
+
+    $this->actingAs($this->user)->get("/sertifikasi/permohonan/{$permohonan->ulid}/perbaiki")->assertSessionHas('error');
+    $this->actingAs(User::factory()->create())->get("/sertifikasi/permohonan/{$permohonan->ulid}/perbaiki")->assertNotFound();
+});
+
+test('asesi can register only one scheme per period', function () {
+    $skemaLain = SkemaSertifikasi::factory()->create();
+    $this->periode->skema()->attach($skemaLain->id_skema);
+    $this->periode->simpanLokasi([['id_tuk' => $this->tuk->id_tuk, 'skema' => [$this->skema->id_skema, $skemaLain->id_skema]]]);
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+
+    $this->actingAs($this->user)
+        ->get('/sertifikasi')
+        ->assertInertia(fn ($page) => $page
+            ->where('periode.0.skema_terdaftar', $this->skema->judul)
+            ->where('periode.0.skema', fn ($daftar) => collect($daftar)->pluck('keadaan', 'id_skema')->all() == [
+                $this->skema->id_skema => 'terdaftar',
+                $skemaLain->id_skema => 'terkunci',
+            ]));
+
+    $this->actingAs($this->user)->get(urlDaftar($this->periode, $skemaLain))->assertSessionHas('error');
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $skemaLain), dataApl01())->assertSessionHas('error');
+
+    expect(PermohonanSertifikasi::count())->toBe(1);
+});
+
+test('asesi can cancel a pending application and then choose another scheme', function () {
+    $skemaLain = SkemaSertifikasi::factory()->create();
+    $this->periode->skema()->attach($skemaLain->id_skema);
+    $this->periode->simpanLokasi([['id_tuk' => $this->tuk->id_tuk, 'skema' => [$this->skema->id_skema, $skemaLain->id_skema]]]);
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $permohonan = PermohonanSertifikasi::sole();
+
+    $this->actingAs(User::factory()->create())->post("/sertifikasi/permohonan/{$permohonan->ulid}/batal")->assertNotFound();
+
+    $this->actingAs($this->user)->post("/sertifikasi/permohonan/{$permohonan->ulid}/batal")->assertRedirect(route('sertifikasi.index'));
+
+    expect($permohonan->fresh()->status)->toBe(StatusPermohonan::Dibatalkan)
+        ->and($this->periode->kuotaTerpakai())->toBe(0);
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $skemaLain), dataApl01())->assertSessionHasNoErrors();
+
+    expect(PermohonanSertifikasi::where('status', 'diajukan')->sole()->id_skema)->toBe($skemaLain->id_skema);
+});
+
+test('an application that is already verified cannot be cancelled by the asesi', function () {
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $permohonan = PermohonanSertifikasi::sole();
+    $permohonan->update(['status' => StatusPermohonan::Diterima]);
+
+    $this->actingAs($this->user)->post("/sertifikasi/permohonan/{$permohonan->ulid}/batal")->assertSessionHas('error');
+
+    expect($permohonan->fresh()->status)->toBe(StatusPermohonan::Diterima);
 });
 
 test('closed periods, unlisted schemes, and full quotas reject registration', function () {
@@ -168,13 +280,13 @@ test('documents and applications are only visible to their owner and admin', fun
     $permohonan = PermohonanSertifikasi::sole();
     $lain = User::factory()->create();
 
-    $this->actingAs($this->user)->get("/sertifikasi/permohonan/{$permohonan->id_permohonan}")->assertOk();
-    $this->actingAs($this->user)->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ijazah")->assertOk();
-    $this->actingAs($this->admin)->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ktp")->assertOk();
+    $this->actingAs($this->user)->get("/sertifikasi/permohonan/{$permohonan->ulid}")->assertOk();
+    $this->actingAs($this->user)->get("/dokumen/permohonan/{$permohonan->ulid}/ijazah")->assertOk();
+    $this->actingAs($this->admin)->get("/dokumen/permohonan/{$permohonan->ulid}/ktp")->assertOk();
 
-    $this->actingAs($lain)->get("/sertifikasi/permohonan/{$permohonan->id_permohonan}")->assertNotFound();
-    $this->actingAs($lain)->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ijazah")->assertForbidden();
-    $this->actingAs(User::factory()->asesor()->create())->get("/dokumen/permohonan/{$permohonan->id_permohonan}/ktp")->assertForbidden();
+    $this->actingAs($lain)->get("/sertifikasi/permohonan/{$permohonan->ulid}")->assertNotFound();
+    $this->actingAs($lain)->get("/dokumen/permohonan/{$permohonan->ulid}/ijazah")->assertForbidden();
+    $this->actingAs(User::factory()->asesor()->create())->get("/dokumen/permohonan/{$permohonan->ulid}/ktp")->assertForbidden();
 });
 
 test('APL-01 form offers only the locations of the chosen scheme and stores the choice with history', function () {
@@ -212,7 +324,7 @@ test('removing a location from a period asks its active applicants to choose aga
 
     // Admin mengganti TUK Surabaya dengan TUK Malang.
     $this->actingAs($this->admin)
-        ->put("/pendaftaran/periode/{$this->periode->id_periode}", [
+        ->put("/pendaftaran/periode/{$this->periode->ulid}", [
             'nama' => $this->periode->nama,
             'tanggal_buka' => $this->periode->tanggal_buka->toDateString(),
             'tanggal_tutup' => $this->periode->tanggal_tutup->toDateString(),
@@ -239,7 +351,7 @@ test('removing a location from a period asks its active applicants to choose aga
 test('asesi chooses a new location only when needed and only from available ones', function () {
     $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
     $permohonan = PermohonanSertifikasi::sole();
-    $url = "/sertifikasi/permohonan/{$permohonan->id_permohonan}/lokasi";
+    $url = "/sertifikasi/permohonan/{$permohonan->ulid}/lokasi";
 
     // Lokasi masih ada, jadi belum perlu memilih ulang.
     $this->actingAs($this->user)->put($url, ['id_tuk' => $this->tuk->id_tuk])->assertSessionHas('error');
@@ -248,7 +360,7 @@ test('asesi chooses a new location only when needed and only from available ones
     $this->periode->kosongkanLokasiTidakTersedia($this->admin);
 
     $this->actingAs($this->user)
-        ->get("/sertifikasi/permohonan/{$permohonan->id_permohonan}")
+        ->get("/sertifikasi/permohonan/{$permohonan->ulid}")
         ->assertInertia(fn ($page) => $page
             ->where('permohonan.perlu_pilih_lokasi', true)
             ->has('lokasiTersedia', 1)
@@ -265,4 +377,65 @@ test('asesi chooses a new location only when needed and only from available ones
     expect($permohonan->id_tuk)->toBe($this->tukLain->id_tuk)
         ->and($permohonan->riwayatLokasi)->toHaveCount(3)
         ->and($permohonan->riwayatLokasi[2]->keterangan)->toBe('Dipilih ulang oleh asesi.');
+});
+
+test('WNI is always stored as Indonesia and WNA must choose another country', function () {
+    $jepang = Negara::create(['nama_negara' => 'Jepang'])->id_negara;
+
+    // Negara yang dikirim untuk WNI diabaikan.
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wni', 'id_negara' => $jepang]))->assertSessionHasNoErrors();
+    expect($this->dataDiri->fresh()->id_negara)->toBe($this->idIndonesia);
+
+    PermohonanSertifikasi::sole()->update(['status' => StatusPermohonan::Dibatalkan]);
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $this->idIndonesia]))
+        ->assertSessionHasErrors('id_negara');
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $jepang]))->assertSessionHasNoErrors();
+    expect($this->dataDiri->fresh()->id_negara)->toBe($jepang);
+});
+
+test('transcript, certificate, and portfolio are limited to 2 MB while other documents are limited to 1 MB', function () {
+    $besar = fn (string $nama) => UploadedFile::fake()->create($nama, 2500, 'application/pdf');
+    $sedang = fn (string $nama, string $mime = 'application/pdf') => UploadedFile::fake()->create($nama, 1500, $mime);
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01([
+            'dokumen' => [
+                ...dataApl01()['dokumen'],
+                'transkrip' => $besar('transkrip.pdf'),
+                'sertifikat_pelatihan' => $besar('sertifikat.pdf'),
+                'portofolio' => $besar('portofolio.pdf'),
+            ],
+        ]))
+        ->assertSessionHasErrors(['dokumen.transkrip', 'dokumen.sertifikat_pelatihan', 'dokumen.portofolio']);
+
+    // 1,5 MB lolos untuk dokumen 2 MB, tetapi ditolak untuk dokumen lain.
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01([
+            'dokumen' => [
+                'ktp' => $sedang('ktp.pdf'),
+                'pas_foto' => $sedang('foto.png', 'image/png'),
+                'npwp' => $sedang('npwp.pdf'),
+                'cv' => $sedang('cv.pdf'),
+                'ijazah' => $sedang('ijazah.pdf'),
+                'surat_keterangan_kerja' => $sedang('surat.pdf'),
+                'transkrip' => $sedang('transkrip.pdf'),
+                'sertifikat_pelatihan' => $sedang('sertifikat.pdf'),
+                'portofolio' => $sedang('portofolio.pdf'),
+            ],
+        ]))
+        ->assertSessionHasErrors(['dokumen.ktp', 'dokumen.pas_foto', 'dokumen.npwp', 'dokumen.cv', 'dokumen.ijazah', 'dokumen.surat_keterangan_kerja'])
+        ->assertSessionDoesntHaveErrors(['dokumen.transkrip', 'dokumen.sertifikat_pelatihan', 'dokumen.portofolio']);
+});
+
+test('the same NIK cannot be used by two accounts', function () {
+    DataDiri::factory()->create(['nik' => '3578010101900001']);
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['nik' => '3578010101900001']))
+        ->assertSessionHasErrors(['nik' => 'NIK 3578010101900001 sudah terdaftar pada akun lain. Hubungi admin LSP bila ini NIK Anda.']);
+
+    expect(PermohonanSertifikasi::count())->toBe(0);
 });

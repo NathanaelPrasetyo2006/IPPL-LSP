@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TujuanOtp;
 use App\Enums\UserRole;
+use App\Models\Concerns\PunyaKodeUrl;
 use App\Support\KodeVerifikasi;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -19,7 +20,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, PunyaKodeUrl;
 
     protected $primaryKey = 'id_user';
 

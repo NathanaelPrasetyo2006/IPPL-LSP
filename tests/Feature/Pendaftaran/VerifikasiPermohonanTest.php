@@ -23,7 +23,7 @@ beforeEach(function () {
         'ukuran' => 1024,
     ]);
 
-    $this->url = "/pendaftaran/verifikasi/{$this->permohonan->id_permohonan}";
+    $this->url = "/pendaftaran/verifikasi/{$this->permohonan->ulid}";
     $this->asesi = $this->permohonan->dataDiri->user;
 });
 
@@ -118,7 +118,7 @@ test('in-app notification shows in the bell and opens the application', function
 
     $this->actingAs($this->asesi)
         ->post("/notifikasi/{$notifikasi->id}/baca")
-        ->assertRedirect("/sertifikasi/permohonan/{$this->permohonan->id_permohonan}");
+        ->assertRedirect("/sertifikasi/permohonan/{$this->permohonan->ulid}");
 
     expect($notifikasi->fresh()->read_at)->not->toBeNull();
 });

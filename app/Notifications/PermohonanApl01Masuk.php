@@ -28,7 +28,7 @@ class PermohonanApl01Masuk extends Notification
         return [
             'judul' => 'Permohonan APL-01 baru',
             'pesan' => "{$this->permohonan->dataDiri->nama_lengkap} mengajukan skema {$this->permohonan->skema->judul} ({$this->permohonan->nomor}).",
-            'url' => route('pendaftaran.verifikasi.show', $this->permohonan->id_permohonan, absolute: false),
+            'url' => route('pendaftaran.verifikasi.show', $this->permohonan, absolute: false),
             'tipe' => 'info',
         ];
     }

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { type StatusPeriode, type StatusPermohonan } from '@/types';
-import { CalendarClock, CircleCheck, CircleX, Clock, DoorClosed, DoorOpen, type LucideIcon } from 'lucide-react';
+import { Ban, CalendarClock, CircleCheck, CircleX, Clock, DoorClosed, DoorOpen, type LucideIcon } from 'lucide-react';
 
 interface BadgeMeta {
     label: string;
@@ -20,6 +20,7 @@ export const STATUS_PERMOHONAN: Record<StatusPermohonan, BadgeMeta> = {
     diajukan: { label: 'Menunggu verifikasi', icon: Clock, className: NADA.amber },
     diterima: { label: 'Diterima', icon: CircleCheck, className: NADA.emerald },
     ditolak: { label: 'Ditolak', icon: CircleX, className: NADA.red },
+    dibatalkan: { label: 'Dibatalkan', icon: Ban, className: NADA.slate },
 };
 
 export const STATUS_PERIODE: Record<StatusPeriode, BadgeMeta> = {
