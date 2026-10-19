@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Paginated, type PeriodePendaftaran, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CalendarRange, ClipboardCheck, DoorClosed, DoorOpen, LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarRange, ClipboardCheck, DoorClosed, DoorOpen, Eye, LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -118,7 +118,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
                                 <TableHead>Skema</TableHead>
                                 <TableHead className="w-32">Pendaftar</TableHead>
                                 <TableHead className="w-32">Status</TableHead>
-                                <TableHead className="w-32 pr-5 text-right">Aksi</TableHead>
+                                <TableHead className="w-40 pr-5 text-right">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
 
@@ -136,7 +136,7 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
                                 <TableRow key={item.id_periode}>
                                     <TableCell className="pl-5">
                                         <Link
-                                            href={route('pendaftaran.periode.edit', item.id_periode)}
+                                            href={route('pendaftaran.periode.show', item.id_periode)}
                                             className="font-medium text-amber-700 hover:underline dark:text-amber-500"
                                         >
                                             {item.nama}
@@ -180,6 +180,19 @@ export default function PeriodeIndex({ periode, stats }: IndexProps) {
 
                                     <TableCell className="pr-5">
                                         <div className="flex justify-end gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="size-8 text-violet-600 hover:bg-violet-50 hover:text-violet-700 dark:text-violet-400 dark:hover:bg-violet-950/50"
+                                                asChild
+                                                title="Lihat detail & pendaftar"
+                                            >
+                                                <Link href={route('pendaftaran.periode.show', item.id_periode)}>
+                                                    <Eye />
+                                                    <span className="sr-only">Lihat detail {item.nama}</span>
+                                                </Link>
+                                            </Button>
+
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

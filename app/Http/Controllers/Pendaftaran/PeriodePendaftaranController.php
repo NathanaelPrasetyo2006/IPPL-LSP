@@ -11,6 +11,7 @@ use App\Models\SkemaSertifikasi;
 use App\Models\Tuk;
 use App\Notifications\LokasiPermohonanPerluDipilihUlang;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -54,6 +55,89 @@ class PeriodePendaftaranController extends Controller
                 'periode_dibuka' => PeriodePendaftaran::query()->dibuka()->count(),
                 'menunggu_verifikasi' => PermohonanSertifikasi::query()->where('status', StatusPermohonan::Diajukan)->count(),
             ],
+        ]);
+    }
+
+    /**
+     * Detail periode beserta daftar pendaftarnya, bisa difilter per skema dan dicari.
+     */
+    public function show(Request $request, PeriodePendaftaran $periode): Response
+    {
+        $periode->load(['skema' => fn ($query) => $query->orderBy('nomor')]);
+
+        $idSkema = $request->integer('skema') ?: null;
+        $search = trim((string) $request->query('search', ''));
+
+        // Filter skema hanya menerima skema yang memang dibuka pada periode ini.
+        if ($idSkema && ! $periode->skema->contains('id_skema', $idSkema)) {
+            $idSkema = null;
+        }
+
+        $pendaftar = $periode->permohonan()
+            ->with(['dataDiri:id_data_diri,id_user,kode_asesi,nama_lengkap,no_telp', 'dataDiri.user:id_user,email', 'skema:id_skema,judul,nomor', 'tuk:id_tuk,nama'])
+            ->when($idSkema, fn ($query) => $query->where('id_skema', $idSkema))
+            ->when($search !== '', function ($query) use ($search) {
+                // lower() dipakai supaya pencarian tetap case-insensitive di PostgreSQL.
+                $keyword = '%'.mb_strtolower($search).'%';
+
+                $query->where(function ($query) use ($keyword) {
+                    $query->whereRaw('lower(nomor) like ?', [$keyword])
+                        ->orWhereHas('dataDiri', fn ($query) => $query
+                            ->whereRaw('lower(kode_asesi) like ?', [$keyword])
+                            ->orWhereRaw('lower(nama_lengkap) like ?', [$keyword])
+                            ->orWhereRaw('lower(no_telp) like ?', [$keyword])
+                            ->orWhereHas('user', fn ($query) => $query->whereRaw('lower(email) like ?', [$keyword])));
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (PermohonanSertifikasi $p) => [
+                'id_permohonan' => $p->id_permohonan,
+                'nomor' => $p->nomor,
+                'kode_asesi' => $p->dataDiri?->kode_asesi,
+                'nama' => $p->dataDiri?->nama_lengkap,
+                'email' => $p->dataDiri?->user?->email,
+                'no_telp' => $p->dataDiri?->no_telp,
+                'skema' => $p->skema?->judul,
+                'lokasi' => $p->tuk?->nama,
+                'status' => $p->status->value,
+                'diajukan_pada' => $p->created_at?->locale('id')->translatedFormat('d M Y'),
+            ]);
+
+        // Jumlah pendaftar per skema yang masih memakai kuota (ditolak tidak dihitung).
+        $jumlahPerSkema = $periode->permohonan()
+            ->whereIn('status', StatusPermohonan::aktif())
+            ->selectRaw('id_skema, count(*) as jumlah')
+            ->groupBy('id_skema')
+            ->pluck('jumlah', 'id_skema');
+
+        $lokasi = $periode->tuk()->orderBy('nama')->get()->groupBy('id_tuk')->map(fn ($baris) => [
+            'nama' => $baris->first()->nama,
+            'alamat' => $baris->first()->alamat,
+            'skema' => $periode->skema->whereIn('id_skema', $baris->pluck('pivot.id_skema'))->pluck('judul')->values(),
+        ])->values();
+
+        return Inertia::render('pendaftaran/periode/show', [
+            'periode' => [
+                'id_periode' => $periode->id_periode,
+                'nama' => $periode->nama,
+                'tanggal_buka' => $periode->tanggal_buka->locale('id')->translatedFormat('d F Y'),
+                'tanggal_tutup' => $periode->tanggal_tutup->locale('id')->translatedFormat('d F Y'),
+                'kuota' => $periode->kuota,
+                'kuota_terpakai' => $periode->kuotaTerpakai(),
+                'keterangan' => $periode->keterangan,
+                'status' => $periode->status(),
+                'skema' => $periode->skema->map(fn (SkemaSertifikasi $skema) => [
+                    'id_skema' => $skema->id_skema,
+                    'judul' => $skema->judul,
+                    'nomor' => $skema->nomor,
+                    'jumlah_pendaftar' => (int) ($jumlahPerSkema[$skema->id_skema] ?? 0),
+                ])->values(),
+                'lokasi' => $lokasi,
+            ],
+            'pendaftar' => $pendaftar,
+            'filters' => ['skema' => $idSkema, 'search' => $search],
         ]);
     }
 

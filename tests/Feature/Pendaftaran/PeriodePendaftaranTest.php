@@ -170,3 +170,59 @@ test('only admin can manage periods', function () {
         $this->actingAs($user)->post('/pendaftaran/periode', dataPeriode())->assertForbidden();
     }
 });
+
+test('quota is required and at most 10.000', function () {
+    $lokasi = [['id_tuk' => (string) $this->tuk[0]->id_tuk, 'skema' => [$this->skema[0]->id_skema]]];
+
+    foreach ([null, 0, 10001] as $kuota) {
+        $this->actingAs($this->admin)
+            ->post('/pendaftaran/periode', dataPeriode(['kuota' => $kuota, 'skema' => [$this->skema[0]->id_skema], 'lokasi' => $lokasi]))
+            ->assertSessionHasErrors('kuota');
+    }
+
+    $this->actingAs($this->admin)
+        ->post('/pendaftaran/periode', dataPeriode(['kuota' => 10000, 'skema' => [$this->skema[0]->id_skema], 'lokasi' => $lokasi]))
+        ->assertSessionHasNoErrors();
+});
+
+test('period detail lists applicants and can filter them by scheme and search', function () {
+    [$skemaA, $skemaB] = $this->skema;
+    $periode = PeriodePendaftaran::factory()->create(['kuota' => 10]);
+    $periode->skema()->sync([$skemaA->id_skema, $skemaB->id_skema]);
+
+    $budi = PermohonanSertifikasi::factory()->create(['id_periode' => $periode->id_periode, 'id_skema' => $skemaA->id_skema]);
+    $budi->dataDiri->update(['nama_lengkap' => 'Budi Santoso', 'no_telp' => '081111111111']);
+    $sari = PermohonanSertifikasi::factory()->create(['id_periode' => $periode->id_periode, 'id_skema' => $skemaB->id_skema]);
+    $sari->dataDiri->update(['nama_lengkap' => 'Sari Dewi']);
+    PermohonanSertifikasi::factory()->create(); // periode lain
+
+    $url = "/pendaftaran/periode/{$periode->id_periode}";
+
+    $this->actingAs($this->admin)
+        ->get($url)
+        ->assertInertia(fn ($page) => $page
+            ->component('pendaftaran/periode/show')
+            ->has('pendaftar.data', 2)
+            ->where('periode.kuota_terpakai', 2)
+            ->has('pendaftar.data.0', fn ($row) => $row
+                ->hasAll(['kode_asesi', 'nama', 'email', 'no_telp', 'skema', 'lokasi', 'status'])
+                ->etc()));
+
+    $this->actingAs($this->admin)
+        ->get("{$url}?skema={$skemaB->id_skema}")
+        ->assertInertia(fn ($page) => $page->has('pendaftar.data', 1)->where('pendaftar.data.0.nama', 'Sari Dewi'));
+
+    // Pencarian berlaku untuk nama, kode asesi, email, dan no. HP.
+    foreach (['budi', $budi->dataDiri->kode_asesi, '081111111111', $budi->dataDiri->user->email] as $kataKunci) {
+        $this->actingAs($this->admin)
+            ->get($url.'?search='.urlencode($kataKunci))
+            ->assertInertia(fn ($page) => $page->has('pendaftar.data', 1)->where('pendaftar.data.0.nama', 'Budi Santoso'));
+    }
+});
+
+test('only admin can open the period detail', function () {
+    $periode = PeriodePendaftaran::factory()->create();
+
+    $this->actingAs(User::factory()->asesor()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
+    $this->actingAs(User::factory()->create())->get("/pendaftaran/periode/{$periode->id_periode}")->assertForbidden();
+});

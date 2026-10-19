@@ -40,6 +40,9 @@ interface PeriodeFormProps {
     pendaftarLokasi?: Record<string, number>;
     onSubmit: FormEventHandler;
     submitLabel: string;
+    /** Mis. saat mengubah periode tetapi belum ada data yang berubah. */
+    submitDisabled?: boolean;
+    submitHint?: string;
 }
 
 const textareaClass =
@@ -56,6 +59,8 @@ export default function PeriodeForm({
     pendaftarLokasi = {},
     onSubmit,
     submitLabel,
+    submitDisabled = false,
+    submitHint,
 }: PeriodeFormProps) {
     const [cari, setCari] = useState('');
 
@@ -143,10 +148,12 @@ export default function PeriodeForm({
                             id="kuota"
                             type="number"
                             min={1}
+                            max={10000}
+                            required
                             inputMode="numeric"
                             value={data.kuota}
                             onChange={(e) => setData('kuota', e.target.value)}
-                            placeholder="Tanpa batas"
+                            placeholder="Maks. 10.000"
                         />
                         <InputError message={errors.kuota} />
                     </div>
@@ -415,13 +422,15 @@ export default function PeriodeForm({
             </div>
 
             <div className="bg-muted/30 flex items-center gap-3 rounded-b-xl border-t px-6 py-4">
-                <Button type="submit" disabled={processing}>
+                <Button type="submit" disabled={processing || submitDisabled}>
                     {submitLabel}
                 </Button>
 
                 <Button type="button" variant="outline" asChild>
                     <Link href={route('pendaftaran.periode.index')}>Batal</Link>
                 </Button>
+
+                {submitHint && <p className="text-muted-foreground text-sm">{submitHint}</p>}
             </div>
         </form>
     );

@@ -19,7 +19,7 @@ class PeriodePendaftaranRequest extends FormRequest
             'nama' => ['required', 'string', 'max:255'],
             'tanggal_buka' => ['required', 'date'],
             'tanggal_tutup' => ['required', 'date', 'after_or_equal:tanggal_buka'],
-            'kuota' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'kuota' => ['required', 'integer', 'min:1', 'max:10000'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'aktif' => ['boolean'],
             'skema' => ['required', 'array', 'min:1'],
@@ -67,6 +67,8 @@ class PeriodePendaftaranRequest extends FormRequest
     {
         return [
             'tanggal_tutup.after_or_equal' => 'Tanggal tutup tidak boleh sebelum tanggal buka.',
+            'kuota.required' => 'Kuota pendaftar wajib diisi.',
+            'kuota.max' => 'Kuota pendaftar maksimal 10.000.',
             'skema.required' => 'Pilih minimal satu skema sertifikasi yang dibuka pada periode ini.',
             'skema.min' => 'Pilih minimal satu skema sertifikasi yang dibuka pada periode ini.',
             'skema.*.exists' => 'Skema yang dipilih tidak ditemukan atau sudah dihapus.',

@@ -13,7 +13,7 @@ Route::middleware(['auth', 'role:admin'])
     ->name('pendaftaran.')
     ->group(function () {
         Route::patch('periode/{periode}/status', [PeriodePendaftaranController::class, 'toggle'])->name('periode.toggle');
-        Route::resource('periode', PeriodePendaftaranController::class)->except('show');
+        Route::resource('periode', PeriodePendaftaranController::class);
 
         Route::get('verifikasi', [VerifikasiPermohonanController::class, 'index'])->name('verifikasi.index');
         Route::get('verifikasi/{permohonan}', [VerifikasiPermohonanController::class, 'show'])->name('verifikasi.show');

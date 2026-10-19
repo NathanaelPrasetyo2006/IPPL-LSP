@@ -216,6 +216,7 @@ test('removing a location from a period asks its active applicants to choose aga
             'nama' => $this->periode->nama,
             'tanggal_buka' => $this->periode->tanggal_buka->toDateString(),
             'tanggal_tutup' => $this->periode->tanggal_tutup->toDateString(),
+            'kuota' => 100,
             'aktif' => true,
             'skema' => [$this->skema->id_skema],
             'lokasi' => [['id_tuk' => $this->tukLain->id_tuk, 'skema' => [$this->skema->id_skema]]],
