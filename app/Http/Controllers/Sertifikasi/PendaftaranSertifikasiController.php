@@ -130,7 +130,7 @@ class PendaftaranSertifikasiController extends Controller
         $permohonan = $this->simpanApl01($request, $periode, $skema, null);
 
         return to_route('sertifikasi.show', $permohonan)
-            ->with('success', "Permohonan {$permohonan->nomor} berhasil diajukan. Hasil verifikasi akan dikirim ke email Anda.");
+            ->with('success', "Permohonan skema {$skema->judul} berhasil diajukan. Hasil verifikasi akan dikirim ke email Anda.");
     }
 
     /**
@@ -161,7 +161,7 @@ class PendaftaranSertifikasiController extends Controller
         $this->simpanApl01($request, $permohonan->periode, $permohonan->skema, $permohonan);
 
         return to_route('sertifikasi.show', $permohonan)
-            ->with('success', "Permohonan {$permohonan->nomor} berhasil diajukan ulang. Hasil verifikasi akan dikirim ke email Anda.");
+            ->with('success', "Permohonan skema {$permohonan->skema->judul} berhasil diajukan ulang. Hasil verifikasi akan dikirim ke email Anda.");
     }
 
     /**
@@ -181,7 +181,7 @@ class PendaftaranSertifikasiController extends Controller
         });
 
         return to_route('sertifikasi.index')
-            ->with('success', "Permohonan {$permohonan->nomor} dibatalkan. Anda bisa mendaftar skema lain selama periode masih dibuka.");
+            ->with('success', "Permohonan skema {$permohonan->skema->judul} dibatalkan. Anda bisa mengajukannya kembali atau mendaftar skema lain selama periode masih dibuka.");
     }
 
     /**
