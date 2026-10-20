@@ -1,18 +1,17 @@
 import InputError from '@/components/input-error';
+import PilihWilayah, { type TingkatWilayah } from '@/components/pendaftaran/pilih-wilayah';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
-export interface TukFormData {
-    nama: string;
-    alamat: string;
-}
+export type TukFormData = Record<'nama' | 'alamat' | TingkatWilayah, string>;
 
 interface TukFormProps {
     data: TukFormData;
     setData: (key: keyof TukFormData, value: string) => void;
+    setWilayah: (perubahan: Partial<Record<TingkatWilayah, string>>) => void;
     errors: Partial<Record<keyof TukFormData, string>>;
     processing: boolean;
     onSubmit: FormEventHandler;
@@ -22,7 +21,7 @@ interface TukFormProps {
 const textareaClass =
     'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-base focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden md:text-sm';
 
-export default function TukForm({ data, setData, errors, processing, onSubmit, submitLabel }: TukFormProps) {
+export default function TukForm({ data, setData, setWilayah, errors, processing, onSubmit, submitLabel }: TukFormProps) {
     return (
         <form onSubmit={onSubmit} className="bg-card max-w-3xl rounded-xl border shadow-xs">
             <div className="space-y-6 p-6">
@@ -49,16 +48,22 @@ export default function TukForm({ data, setData, errors, processing, onSubmit, s
 
                     <textarea
                         id="alamat"
-                        rows={4}
+                        rows={2}
                         value={data.alamat}
                         onChange={(e) => setData('alamat', e.target.value)}
                         required
                         className={textareaClass}
-                        placeholder="Nama jalan, nomor, kelurahan, kecamatan, kota/kabupaten, provinsi"
+                        placeholder="Nama jalan, nomor, RT/RW, nama gedung"
                     />
 
                     <InputError message={errors.alamat} />
                 </div>
+
+                <PilihWilayah
+                    value={{ provinsi: data.provinsi, kota: data.kota, kecamatan: data.kecamatan, kelurahan: data.kelurahan }}
+                    onChange={setWilayah}
+                    errors={errors}
+                />
             </div>
 
             <div className="bg-muted/30 flex items-center gap-3 rounded-b-xl border-t px-6 py-4">

@@ -113,7 +113,7 @@ class PeriodePendaftaranController extends Controller
 
         $lokasi = $periode->tuk()->orderBy('nama')->get()->groupBy('id_tuk')->map(fn ($baris) => [
             'nama' => $baris->first()->nama,
-            'alamat' => $baris->first()->alamat,
+            'alamat' => $baris->first()->alamatLengkap(),
             'skema' => $periode->skema->whereIn('id_skema', $baris->pluck('pivot.id_skema'))->pluck('judul')->values(),
         ])->values();
 
@@ -303,11 +303,11 @@ class PeriodePendaftaranController extends Controller
     }
 
     /**
-     * @return list<array{id_tuk: int, nama: string, alamat: string}>
+     * @return list<array{id_tuk: int, ulid: string, nama: string, alamat: string}>
      */
     private function tukOptions(): array
     {
-        return Tuk::query()->orderBy('nama')->get(['id_tuk', 'ulid', 'nama', 'alamat'])->toArray();
+        return Tuk::query()->orderBy('nama')->get()->map(fn (Tuk $tuk) => $tuk->ringkas())->all();
     }
 
     /**

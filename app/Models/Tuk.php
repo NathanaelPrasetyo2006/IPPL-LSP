@@ -27,5 +27,39 @@ class Tuk extends Model
     protected $fillable = [
         'nama',
         'alamat',
+        'provinsi',
+        'kota',
+        'kecamatan',
+        'kelurahan',
     ];
+
+    /**
+     * Kolom yang membentuk alamat lengkap, urut dari detail jalan sampai provinsi.
+     *
+     * @var list<string>
+     */
+    public const KOLOM_ALAMAT = ['alamat', 'kelurahan', 'kecamatan', 'kota', 'provinsi'];
+
+    /**
+     * Detail jalan digabung dengan wilayahnya, mis. "Jl. Pemuda 1, Embong Kaliasin, Genteng, Kota Surabaya, Jawa Timur".
+     */
+    public function alamatLengkap(): string
+    {
+        return collect(self::KOLOM_ALAMAT)->map(fn (string $kolom) => $this->{$kolom})->filter()->implode(', ');
+    }
+
+    /**
+     * Data lokasi untuk ditampilkan; "alamat" di sini sudah berupa alamat lengkap.
+     *
+     * @return array{id_tuk: int, ulid: string, nama: string, alamat: string}
+     */
+    public function ringkas(): array
+    {
+        return [
+            'id_tuk' => $this->id_tuk,
+            'ulid' => $this->ulid,
+            'nama' => $this->nama,
+            'alamat' => $this->alamatLengkap(),
+        ];
+    }
 }

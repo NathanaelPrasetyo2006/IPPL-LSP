@@ -32,8 +32,10 @@ function biodataValid(array $override = []): array
         'jenis_kelamin' => 'L',
         'no_telp' => '0812-3456-7890',
         'alamat' => 'Jl. Pahlawan No. 1',
-        'kota' => 'Kota Surabaya',
         'provinsi' => 'Jawa Timur',
+        'kota' => 'Kota Surabaya',
+        'kecamatan' => 'Genteng',
+        'kelurahan' => 'Embong Kaliasin',
         'pendidikan_terakhir' => 'S1',
         'instansi' => 'PT Contoh',
         'bidang_keahlian' => 'Teknologi Informasi',
@@ -96,9 +98,10 @@ test('biodata is validated', function () {
             'tgl_lahir' => now()->subYears(10)->toDateString(),
             'jenis_kelamin' => 'X',
             'no_telp' => 'abc',
+            'kelurahan' => '',
             'pas_foto' => null,
         ]))
-        ->assertSessionHasErrors(['nik', 'tgl_lahir', 'jenis_kelamin', 'no_telp', 'pas_foto']);
+        ->assertSessionHasErrors(['nik', 'tgl_lahir', 'jenis_kelamin', 'no_telp', 'kelurahan', 'pas_foto']);
 });
 
 test('nik must be unique between asesor', function () {

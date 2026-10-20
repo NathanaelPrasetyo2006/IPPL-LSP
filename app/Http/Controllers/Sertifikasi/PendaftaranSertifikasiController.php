@@ -43,7 +43,7 @@ class PendaftaranSertifikasiController extends Controller
         $dataDiri = $request->user()->dataDiri;
 
         $permohonan = $dataDiri
-            ? $dataDiri->permohonan()->with(['skema:id_skema,ulid,judul,nomor', 'periode:id_periode,ulid,nama', 'tuk:id_tuk,ulid,nama,alamat'])->latest()->get()
+            ? $dataDiri->permohonan()->with(['skema:id_skema,ulid,judul,nomor', 'periode:id_periode,ulid,nama', 'tuk:id_tuk,ulid,nama,alamat,kelurahan,kecamatan,kota,provinsi'])->latest()->get()
             : collect();
 
         $periode = PeriodePendaftaran::query()
@@ -401,7 +401,7 @@ class PendaftaranSertifikasiController extends Controller
     private function lokasiOptions(PeriodePendaftaran $periode, int $idSkema): array
     {
         return $periode->lokasiSkema($idSkema)
-            ->map(fn (Tuk $tuk) => $tuk->only(['id_tuk', 'ulid', 'nama', 'alamat']))
+            ->map(fn (Tuk $tuk) => $tuk->ringkas())
             ->values()
             ->all();
     }

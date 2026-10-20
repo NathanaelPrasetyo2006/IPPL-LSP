@@ -1,4 +1,5 @@
 import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,10 +14,14 @@ interface Opsi {
 }
 
 interface PilihWilayahProps {
-    /** Nama wilayah yang tersimpan (bukan kode), sesuai kolom di data diri. */
+    /** Nama wilayah yang tersimpan (bukan kode). */
     value: Record<TingkatWilayah, string>;
     onChange: (perubahan: Partial<Record<TingkatWilayah, string>>) => void;
     errors: Partial<Record<string, string>>;
+    /** Akhiran nama kolom bila satu halaman punya lebih dari satu alamat, mis. "_kantor" untuk provinsi_kantor. */
+    akhiran?: string;
+    /** Alamat opsional boleh dikosongkan lagi setelah dipilih. */
+    wajib?: boolean;
 }
 
 const URUTAN: TingkatWilayah[] = ['provinsi', 'kota', 'kecamatan', 'kelurahan'];
@@ -45,13 +50,15 @@ async function ambil(url: string): Promise<Opsi[]> {
 
 const cocok = (daftar: Opsi[], nama: string) => daftar.find((opsi) => opsi.nama.toLowerCase() === nama.trim().toLowerCase());
 
+const KOSONG: Record<TingkatWilayah, string> = { provinsi: '', kota: '', kecamatan: '', kelurahan: '' };
+
 /**
  * Alamat bertingkat provinsi → kab/kota → kecamatan → kelurahan dari API wilayah.
  * Yang disimpan tetap nama wilayah; bila API tidak bisa dihubungi, isian beralih ke ketik manual.
  */
-export default function PilihWilayah({ value, onChange, errors }: PilihWilayahProps) {
+export default function PilihWilayah({ value, onChange, errors, akhiran = '', wajib = true }: PilihWilayahProps) {
     const [daftar, setDaftar] = useState<Record<TingkatWilayah, Opsi[]>>({ provinsi: [], kota: [], kecamatan: [], kelurahan: [] });
-    const [terpilih, setTerpilih] = useState<Record<TingkatWilayah, string>>({ provinsi: '', kota: '', kecamatan: '', kelurahan: '' });
+    const [terpilih, setTerpilih] = useState<Record<TingkatWilayah, string>>(KOSONG);
     const [memuat, setMemuat] = useState<TingkatWilayah | null>('provinsi');
     const [gagal, setGagal] = useState(false);
 
@@ -130,6 +137,19 @@ export default function PilihWilayah({ value, onChange, errors }: PilihWilayahPr
         }
     };
 
+    const kosongkan = () => {
+        onChange(KOSONG);
+        setTerpilih(KOSONG);
+        setDaftar((current) => ({ ...current, kota: [], kecamatan: [], kelurahan: [] }));
+    };
+
+    const label = (tingkat: TingkatWilayah) => (
+        <Label htmlFor={tingkat + akhiran}>
+            {LABEL[tingkat]}
+            {wajib && <span className="text-red-600"> *</span>}
+        </Label>
+    );
+
     if (gagal) {
         return (
             <div className="grid gap-3">
@@ -141,12 +161,14 @@ export default function PilihWilayah({ value, onChange, errors }: PilihWilayahPr
                 <div className="grid gap-6 md:grid-cols-2">
                     {URUTAN.map((tingkat) => (
                         <div key={tingkat} className="grid content-start gap-2">
-                            <Label htmlFor={tingkat}>
-                                {LABEL[tingkat]}
-                                <span className="text-red-600"> *</span>
-                            </Label>
-                            <Input id={tingkat} value={value[tingkat]} onChange={(e) => onChange({ [tingkat]: e.target.value })} required />
-                            <InputError message={errors[tingkat]} />
+                            {label(tingkat)}
+                            <Input
+                                id={tingkat + akhiran}
+                                value={value[tingkat]}
+                                onChange={(e) => onChange({ [tingkat]: e.target.value })}
+                                required={wajib}
+                            />
+                            <InputError message={errors[tingkat + akhiran]} />
                         </div>
                     ))}
                 </div>
@@ -155,49 +177,54 @@ export default function PilihWilayah({ value, onChange, errors }: PilihWilayahPr
     }
 
     return (
-        <div className="grid gap-6 md:grid-cols-2">
-            {URUTAN.map((tingkat, indeks) => {
-                const induk = URUTAN[indeks - 1];
-                const terkunci = (induk !== undefined && !terpilih[induk]) || memuat === tingkat;
+        <div className="grid gap-3">
+            <div className="grid gap-6 md:grid-cols-2">
+                {URUTAN.map((tingkat, indeks) => {
+                    const induk = URUTAN[indeks - 1];
+                    const terkunci = (induk !== undefined && !terpilih[induk]) || memuat === tingkat;
 
-                return (
-                    <div key={tingkat} className="grid content-start gap-2">
-                        <Label htmlFor={tingkat}>
-                            {LABEL[tingkat]}
-                            <span className="text-red-600"> *</span>
-                        </Label>
+                    return (
+                        <div key={tingkat} className="grid content-start gap-2">
+                            {label(tingkat)}
 
-                        <Select value={terpilih[tingkat]} onValueChange={(id) => pilih(tingkat, id)} disabled={terkunci}>
-                            <SelectTrigger id={tingkat} aria-invalid={!!errors[tingkat]}>
-                                {memuat === tingkat ? (
-                                    <span className="text-muted-foreground inline-flex items-center gap-2">
-                                        <LoaderCircle className="size-4 animate-spin" />
-                                        Memuat…
-                                    </span>
-                                ) : (
-                                    <SelectValue
-                                        placeholder={
-                                            induk && !terpilih[induk]
-                                                ? `Pilih ${LABEL[induk].toLowerCase()} dulu`
-                                                : `Pilih ${LABEL[tingkat].toLowerCase()}`
-                                        }
-                                    />
-                                )}
-                            </SelectTrigger>
+                            <Select value={terpilih[tingkat]} onValueChange={(id) => pilih(tingkat, id)} disabled={terkunci}>
+                                <SelectTrigger id={tingkat + akhiran} aria-invalid={!!errors[tingkat + akhiran]}>
+                                    {memuat === tingkat ? (
+                                        <span className="text-muted-foreground inline-flex items-center gap-2">
+                                            <LoaderCircle className="size-4 animate-spin" />
+                                            Memuat…
+                                        </span>
+                                    ) : (
+                                        <SelectValue
+                                            placeholder={
+                                                induk && !terpilih[induk]
+                                                    ? `Pilih ${LABEL[induk].toLowerCase()} dulu`
+                                                    : `Pilih ${LABEL[tingkat].toLowerCase()}`
+                                            }
+                                        />
+                                    )}
+                                </SelectTrigger>
 
-                            <SelectContent className="max-h-72">
-                                {daftar[tingkat].map((opsi) => (
-                                    <SelectItem key={opsi.id} value={opsi.id}>
-                                        {opsi.nama}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                <SelectContent className="max-h-72">
+                                    {daftar[tingkat].map((opsi) => (
+                                        <SelectItem key={opsi.id} value={opsi.id}>
+                                            {opsi.nama}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <InputError message={errors[tingkat]} />
-                    </div>
-                );
-            })}
+                            <InputError message={errors[tingkat + akhiran]} />
+                        </div>
+                    );
+                })}
+            </div>
+
+            {!wajib && terpilih.provinsi && (
+                <Button type="button" variant="ghost" size="sm" onClick={kosongkan} className="text-muted-foreground justify-self-start">
+                    Kosongkan wilayah
+                </Button>
+            )}
         </div>
     );
 }

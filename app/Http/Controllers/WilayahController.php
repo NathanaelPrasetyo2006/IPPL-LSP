@@ -7,7 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Throwable;
 
 /**
- * Daftar wilayah untuk dropdown alamat di formulir APL-01.
+ * Daftar wilayah untuk dropdown alamat (APL-01, biodata asesor, master TUK).
  */
 class WilayahController extends Controller
 {

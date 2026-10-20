@@ -123,7 +123,7 @@ export default function TukIndex({ tuk, filters }: IndexProps) {
                             <TableRow className="hover:bg-transparent">
                                 <TableHead className="w-14 pl-5">No</TableHead>
                                 <TableHead className="w-72">Nama Lokasi</TableHead>
-                                <TableHead>Detail Alamat</TableHead>
+                                <TableHead>Alamat</TableHead>
                                 {isAdmin && <TableHead className="w-28 pr-5 text-right">Aksi</TableHead>}
                             </TableRow>
                         </TableHeader>

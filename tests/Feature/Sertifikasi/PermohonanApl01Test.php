@@ -49,6 +49,10 @@ function dataApl01(array $override = []): array
         'kebangsaan' => 'wni',
         'id_negara' => test()->idIndonesia,
         'alamat_ktp' => 'Jl. Pahlawan No. 1',
+        'provinsi_ktp' => 'Jawa Timur',
+        'kota_ktp' => 'Kota Surabaya',
+        'kecamatan_ktp' => 'Genteng',
+        'kelurahan_ktp' => 'Embong Kaliasin',
         'alamat_domisili' => 'Jl. Pahlawan No. 1',
         'provinsi' => 'Jawa Timur',
         'kota' => 'Kota Surabaya',
@@ -112,11 +116,12 @@ test('required documents and fields are validated', function () {
         ->post(urlDaftar($this->periode, $this->skema), dataApl01([
             'nik' => '123',
             'kode_pos' => 'abc',
+            'kota_ktp' => '',
             'tujuan_asesmen' => 'lainnya',
             'pernyataan' => false,
             'dokumen' => ['ktp' => UploadedFile::fake()->create('ktp.exe', 10, 'application/x-msdownload')],
         ]))
-        ->assertSessionHasErrors(['nik', 'kode_pos', 'tujuan_asesmen_lainnya', 'pernyataan', 'dokumen.ktp', 'dokumen.pas_foto', 'dokumen.ijazah']);
+        ->assertSessionHasErrors(['nik', 'kode_pos', 'kota_ktp', 'tujuan_asesmen_lainnya', 'pernyataan', 'dokumen.ktp', 'dokumen.pas_foto', 'dokumen.ijazah']);
 
     expect(PermohonanSertifikasi::count())->toBe(0);
 });
@@ -438,4 +443,52 @@ test('the same NIK cannot be used by two accounts', function () {
         ->assertSessionHasErrors(['nik' => 'NIK 3578010101900001 sudah terdaftar pada akun lain. Hubungi admin LSP bila ini NIK Anda.']);
 
     expect(PermohonanSertifikasi::count())->toBe(0);
+});
+
+test('office region is required only when an office address is filled and is shown in the detail', function () {
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['alamat_kantor' => 'Jl. Basuki Rahmat No. 5']))
+        ->assertSessionHasErrors(['provinsi_kantor', 'kota_kantor', 'kecamatan_kantor', 'kelurahan_kantor']);
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01([
+            'alamat_kantor' => 'Jl. Basuki Rahmat No. 5',
+            'provinsi_kantor' => 'Jawa Timur',
+            'kota_kantor' => 'Kota Surabaya',
+            'kecamatan_kantor' => 'Tegalsari',
+            'kelurahan_kantor' => 'Kedungdoro',
+            'kode_pos_kantor' => '60261',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($this->dataDiri->fresh()->kota_kantor)->toBe('Kota Surabaya');
+
+    $this->actingAs($this->user)
+        ->get(route('sertifikasi.show', PermohonanSertifikasi::sole()->ulid))
+        ->assertInertia(fn ($page) => $page->where(
+            'permohonan.pemohon.alamat_kantor',
+            'Jl. Basuki Rahmat No. 5, Kedungdoro, Tegalsari, Kota Surabaya, Jawa Timur, 60261',
+        ));
+});
+
+test('KTP and domicile addresses keep their own region', function () {
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $this->skema), dataApl01([
+            'alamat_ktp' => 'Jl. Ijen No. 10',
+            'provinsi_ktp' => 'Jawa Timur',
+            'kota_ktp' => 'Kota Malang',
+            'kecamatan_ktp' => 'Klojen',
+            'kelurahan_ktp' => 'Oro-oro Dowo',
+        ]))
+        ->assertSessionHasNoErrors();
+
+    expect($this->dataDiri->fresh())
+        ->kota_ktp->toBe('Kota Malang')
+        ->kota->toBe('Kota Surabaya');
+
+    $this->actingAs($this->user)
+        ->get(route('sertifikasi.show', PermohonanSertifikasi::sole()->ulid))
+        ->assertInertia(fn ($page) => $page
+            ->where('permohonan.pemohon.alamat_ktp', 'Jl. Ijen No. 10, Oro-oro Dowo, Klojen, Kota Malang, Jawa Timur')
+            ->where('permohonan.pemohon.alamat_domisili', 'Jl. Pahlawan No. 1, Embong Kaliasin, Genteng, Kota Surabaya, Jawa Timur, 60271'));
 });

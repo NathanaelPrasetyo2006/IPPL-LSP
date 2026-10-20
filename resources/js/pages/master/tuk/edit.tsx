@@ -1,6 +1,6 @@
-import TukForm from '@/components/master/tuk-form';
+import TukForm, { type TukFormData } from '@/components/master/tuk-form';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Tuk } from '@/types';
+import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -19,10 +19,17 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditTuk({ tuk }: { tuk: Tuk }) {
-    const { data, setData, put, errors, processing } = useForm({
-        nama: tuk.nama,
-        alamat: tuk.alamat,
+/** Lokasi beserta kolom wilayahnya; TUK lama yang belum punya wilayah bernilai null. */
+type TukEdit = { ulid: string } & { [K in keyof TukFormData]: string | null };
+
+export default function EditTuk({ tuk }: { tuk: TukEdit }) {
+    const { data, setData, put, errors, processing } = useForm<TukFormData>({
+        nama: tuk.nama ?? '',
+        alamat: tuk.alamat ?? '',
+        provinsi: tuk.provinsi ?? '',
+        kota: tuk.kota ?? '',
+        kecamatan: tuk.kecamatan ?? '',
+        kelurahan: tuk.kelurahan ?? '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -43,7 +50,15 @@ export default function EditTuk({ tuk }: { tuk: Tuk }) {
                     </p>
                 </div>
 
-                <TukForm data={data} setData={setData} errors={errors} processing={processing} onSubmit={submit} submitLabel="Simpan perubahan" />
+                <TukForm
+                    data={data}
+                    setData={setData}
+                    setWilayah={(perubahan) => setData((current) => ({ ...current, ...perubahan }))}
+                    errors={errors}
+                    processing={processing}
+                    onSubmit={submit}
+                    submitLabel="Simpan perubahan"
+                />
             </div>
         </AppLayout>
     );

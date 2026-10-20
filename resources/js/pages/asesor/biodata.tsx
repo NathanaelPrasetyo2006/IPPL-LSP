@@ -1,4 +1,5 @@
 import InputError from '@/components/input-error';
+import PilihWilayah from '@/components/pendaftaran/pilih-wilayah';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
@@ -38,8 +39,10 @@ type BiodataForm = {
     jenis_kelamin: string;
     no_telp: string;
     alamat: string;
-    kota: string;
     provinsi: string;
+    kota: string;
+    kecamatan: string;
+    kelurahan: string;
     pendidikan_terakhir: string;
     instansi: string;
     bidang_keahlian: string;
@@ -77,8 +80,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
         jenis_kelamin: asesor.jenis_kelamin ?? '',
         no_telp: asesor.no_telp ?? '',
         alamat: asesor.alamat ?? '',
-        kota: asesor.kota ?? '',
         provinsi: asesor.provinsi ?? '',
+        kota: asesor.kota ?? '',
+        kecamatan: asesor.kecamatan ?? '',
+        kelurahan: asesor.kelurahan ?? '',
         pendidikan_terakhir: asesor.pendidikan_terakhir ?? '',
         instansi: asesor.instansi ?? '',
         bidang_keahlian: asesor.bidang_keahlian ?? '',
@@ -311,30 +316,16 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                     <Section title="Alamat" description="Alamat domisili saat ini untuk keperluan korespondensi.">
                         <div className="grid gap-2">
-                            <Label htmlFor="alamat">Alamat lengkap *</Label>
-                            <textarea
-                                {...field('alamat')}
-                                required
-                                rows={3}
-                                className={textareaClass}
-                                placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan"
-                            />
+                            <Label htmlFor="alamat">Detail alamat *</Label>
+                            <textarea {...field('alamat')} required rows={2} className={textareaClass} placeholder="Nama jalan, nomor rumah, RT/RW" />
                             <InputError message={errors.alamat} />
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="kota">Kota / kabupaten *</Label>
-                                <Input {...field('kota')} required autoComplete="address-level2" placeholder="Contoh: Kota Surabaya" />
-                                <InputError message={errors.kota} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="provinsi">Provinsi *</Label>
-                                <Input {...field('provinsi')} required autoComplete="address-level1" placeholder="Contoh: Jawa Timur" />
-                                <InputError message={errors.provinsi} />
-                            </div>
-                        </div>
+                        <PilihWilayah
+                            value={{ provinsi: data.provinsi, kota: data.kota, kecamatan: data.kecamatan, kelurahan: data.kelurahan }}
+                            onChange={(perubahan) => setData((current) => ({ ...current, ...perubahan }))}
+                            errors={errors}
+                        />
                     </Section>
 
                     <div className="bg-muted/30 flex flex-col gap-3 rounded-b-xl border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">

@@ -28,7 +28,7 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
-    // Sumber data provinsi/kab/kota/kecamatan/kelurahan untuk alamat di APL-01.
+    // Sumber data provinsi/kab/kota/kecamatan/kelurahan untuk semua dropdown alamat.
     'wilayah' => [
         'url' => env('WILAYAH_API_URL', 'https://wilayah.id/api'),
     ],

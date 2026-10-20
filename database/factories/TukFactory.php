@@ -17,11 +17,21 @@ class TukFactory extends Factory
      */
     public function definition(): array
     {
-        $kota = fake()->randomElement(['Jakarta', 'Bandung', 'Surabaya', 'Medan', 'Makassar', 'Yogyakarta', 'Denpasar']);
+        [$provinsi, $kota, $kecamatan, $kelurahan] = fake()->randomElement([
+            ['DKI Jakarta', 'Kota Jakarta Pusat', 'Gambir', 'Gambir'],
+            ['Jawa Barat', 'Kota Bandung', 'Sumur Bandung', 'Braga'],
+            ['Jawa Timur', 'Kota Surabaya', 'Genteng', 'Embong Kaliasin'],
+            ['Sumatera Utara', 'Kota Medan', 'Medan Petisah', 'Petisah Tengah'],
+            ['Daerah Istimewa Yogyakarta', 'Kota Yogyakarta', 'Gondokusuman', 'Terban'],
+        ]);
 
         return [
-            'nama' => 'TUK '.$kota.' '.fake()->unique()->numerify('###'),
-            'alamat' => fake()->streetAddress().', '.$kota,
+            'nama' => 'TUK '.str_replace('Kota ', '', $kota).' '.fake()->unique()->numerify('###'),
+            'alamat' => fake()->streetAddress(),
+            'provinsi' => $provinsi,
+            'kota' => $kota,
+            'kecamatan' => $kecamatan,
+            'kelurahan' => $kelurahan,
         ];
     }
 }

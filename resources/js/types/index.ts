@@ -95,6 +95,7 @@ export interface Tuk {
     id_tuk: number;
     ulid: string;
     nama: string;
+    /** Alamat lengkap: detail jalan beserta kelurahan, kecamatan, kota/kabupaten, dan provinsi. */
     alamat: string;
 }
 
@@ -126,8 +127,10 @@ export interface AsesorBiodata {
     jenis_kelamin: string | null;
     no_telp: string | null;
     alamat: string | null;
-    kota: string | null;
     provinsi: string | null;
+    kota: string | null;
+    kecamatan: string | null;
+    kelurahan: string | null;
     pendidikan_terakhir: string | null;
     instansi: string | null;
     bidang_keahlian: string | null;
@@ -226,7 +229,13 @@ export interface PermohonanDetail extends Omit<PermohonanRingkas, 'skema'> {
     catatan_verifikasi: string | null;
     cek_dokumen: Record<string, boolean>;
     verifikator: string | null;
-    skema: { id_skema: number; ulid: string; judul: string; nomor: string; unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[] };
+    skema: {
+        id_skema: number;
+        ulid: string;
+        judul: string;
+        nomor: string;
+        unit_kompetensi: { id_unit_kompetensi: number; kode: string; judul: string }[];
+    };
     pemohon: Record<string, string | null> & { nama_lengkap: string; kode_asesi: string };
     dokumen: DokumenPermohonan[];
     riwayat_lokasi: RiwayatLokasi[];

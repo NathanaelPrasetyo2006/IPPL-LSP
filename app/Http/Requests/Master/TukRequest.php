@@ -28,6 +28,10 @@ class TukRequest extends FormRequest
                 Rule::unique('tuk', 'nama')->whereNull('deleted_at')->ignore($tuk?->id_tuk, 'id_tuk'),
             ],
             'alamat' => ['required', 'string', 'max:1000'],
+            'provinsi' => ['required', 'string', 'max:100'],
+            'kota' => ['required', 'string', 'max:100'],
+            'kecamatan' => ['required', 'string', 'max:100'],
+            'kelurahan' => ['required', 'string', 'max:100'],
         ];
     }
 
@@ -41,6 +45,10 @@ class TukRequest extends FormRequest
         return [
             'nama' => 'nama lokasi',
             'alamat' => 'detail alamat',
+            'provinsi' => 'provinsi',
+            'kota' => 'kota/kabupaten',
+            'kecamatan' => 'kecamatan',
+            'kelurahan' => 'kelurahan/desa',
         ];
     }
 
@@ -61,7 +69,7 @@ class TukRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        foreach (['nama', 'alamat'] as $field) {
+        foreach (['nama', ...Tuk::KOLOM_ALAMAT] as $field) {
             if (is_string($this->input($field))) {
                 $this->merge([$field => trim($this->input($field))]);
             }

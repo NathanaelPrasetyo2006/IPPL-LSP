@@ -1,6 +1,6 @@
 import InputError from '@/components/input-error';
 import PilihLokasi from '@/components/pendaftaran/pilih-lokasi';
-import PilihWilayah from '@/components/pendaftaran/pilih-wilayah';
+import PilihWilayah, { type TingkatWilayah } from '@/components/pendaftaran/pilih-wilayah';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,6 +28,10 @@ type Profil = {
     jenis_kelamin: string;
     id_negara: string;
     alamat_ktp: string;
+    provinsi_ktp: string;
+    kota_ktp: string;
+    kecamatan_ktp: string;
+    kelurahan_ktp: string;
     alamat_domisili: string;
     provinsi: string;
     kota: string;
@@ -41,6 +45,10 @@ type Profil = {
     nama_institusi: string;
     jabatan: string;
     alamat_kantor: string;
+    provinsi_kantor: string;
+    kota_kantor: string;
+    kecamatan_kantor: string;
+    kelurahan_kantor: string;
     kode_pos_kantor: string;
     telp_kantor: string;
     email_kantor: string;
@@ -89,6 +97,18 @@ interface CreateProps {
         tujuan_asesmen: Record<string, string>;
         dokumen: JenisDokumenDef[];
     };
+}
+
+const TINGKAT_WILAYAH: TingkatWilayah[] = ['provinsi', 'kota', 'kecamatan', 'kelurahan'];
+
+/** Nilai wilayah satu alamat; akhiran "" untuk domisili, "_ktp" atau "_kantor" untuk alamat lain. */
+function wilayahDari(data: Record<string, unknown>, akhiran: string): Record<TingkatWilayah, string> {
+    return Object.fromEntries(TINGKAT_WILAYAH.map((tingkat) => [tingkat, String(data[tingkat + akhiran] ?? '')])) as Record<TingkatWilayah, string>;
+}
+
+/** Ubah perubahan wilayah ke nama kolomnya, mis. kota → kota_ktp. */
+function kolomWilayah(perubahan: Partial<Record<TingkatWilayah, string>>, akhiran: string): Record<string, string> {
+    return Object.fromEntries(Object.entries(perubahan).map(([tingkat, nama]) => [tingkat + akhiran, nama ?? '']));
 }
 
 const textareaClass =
@@ -169,6 +189,11 @@ function SelectField({
 export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, profil, dokumenTersimpan, perbaikan, options }: CreateProps) {
     const awal = (key: keyof Profil) => (profil[key] === null || profil[key] === undefined ? '' : String(profil[key]));
 
+    // Profil lama belum punya wilayah KTP; bila alamat KTP sama dengan domisili, wilayah domisili dipakai.
+    const wilayahKtpKosong = TINGKAT_WILAYAH.every((tingkat) => !awal(`${tingkat}_ktp`));
+    const awalKtp = (tingkat: TingkatWilayah) =>
+        wilayahKtpKosong && awal('alamat_ktp') !== '' && awal('alamat_ktp') === awal('alamat_domisili') ? awal(tingkat) : awal(`${tingkat}_ktp`);
+
     const { data, setData, post, errors, processing, transform } = useForm<Apl01Form>({
         // Profil tanpa negara atau berkebangsaan Indonesia dianggap WNI.
         kebangsaan: !awal('id_negara') || awal('id_negara') === String(options.id_indonesia) ? 'wni' : 'wna',
@@ -179,6 +204,10 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         jenis_kelamin: awal('jenis_kelamin'),
         id_negara: awal('id_negara'),
         alamat_ktp: awal('alamat_ktp'),
+        provinsi_ktp: awalKtp('provinsi'),
+        kota_ktp: awalKtp('kota'),
+        kecamatan_ktp: awalKtp('kecamatan'),
+        kelurahan_ktp: awalKtp('kelurahan'),
         alamat_domisili: awal('alamat_domisili'),
         provinsi: awal('provinsi'),
         kota: awal('kota'),
@@ -192,6 +221,10 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         nama_institusi: awal('nama_institusi'),
         jabatan: awal('jabatan'),
         alamat_kantor: awal('alamat_kantor'),
+        provinsi_kantor: awal('provinsi_kantor'),
+        kota_kantor: awal('kota_kantor'),
+        kecamatan_kantor: awal('kecamatan_kantor'),
+        kelurahan_kantor: awal('kelurahan_kantor'),
         kode_pos_kantor: awal('kode_pos_kantor'),
         telp_kantor: awal('telp_kantor'),
         email_kantor: awal('email_kantor'),
@@ -207,7 +240,18 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         dokumen: {},
     });
 
-    const [domisiliSama, setDomisiliSama] = useState(data.alamat_ktp !== '' && data.alamat_ktp === data.alamat_domisili);
+    const [domisiliSama, setDomisiliSama] = useState(
+        data.alamat_ktp !== '' &&
+            data.alamat_ktp === data.alamat_domisili &&
+            TINGKAT_WILAYAH.every((tingkat) => wilayahDari(data, '_ktp')[tingkat] === data[tingkat]),
+    );
+
+    // Domisili yang sama dengan KTP mengikuti detail alamat dan wilayah KTP.
+    const salinKtpKeDomisili = (current: Apl01Form): Apl01Form => ({
+        ...current,
+        alamat_domisili: current.alamat_ktp,
+        ...kolomWilayah(wilayahDari(current, '_ktp'), ''),
+    });
     const [unitTerbuka, setUnitTerbuka] = useState(false);
 
     const err = errors as Partial<Record<string, string>>;
@@ -230,8 +274,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
 
     // Kirim hanya file yang benar-benar dipilih.
     transform((current) => ({
-        ...current,
-        alamat_domisili: domisiliSama ? current.alamat_ktp : current.alamat_domisili,
+        ...(domisiliSama ? salinKtpKeDomisili(current) : current),
         dokumen: Object.fromEntries(Object.entries(current.dokumen).filter(([, file]) => file !== null)),
     }));
 
@@ -402,6 +445,13 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                             <textarea {...text('alamat_ktp')} rows={2} required className={textareaClass} placeholder="Jalan, nomor, RT/RW" />
                         </Field>
 
+                        <PilihWilayah
+                            akhiran="_ktp"
+                            value={wilayahDari(data, '_ktp')}
+                            onChange={(perubahan) => setData((current) => ({ ...current, ...kolomWilayah(perubahan, '_ktp') }))}
+                            errors={err}
+                        />
+
                         <div className="grid gap-2">
                             <div className="flex items-center gap-2">
                                 <Checkbox
@@ -411,7 +461,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                         setDomisiliSama(checked === true);
 
                                         if (checked === true) {
-                                            setData('alamat_domisili', data.alamat_ktp);
+                                            setData(salinKtpKeDomisili);
                                         }
                                     }}
                                 />
@@ -420,7 +470,11 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                 </Label>
                             </div>
 
-                            {!domisiliSama && (
+                            {domisiliSama && <InputError message={err.alamat_domisili} />}
+                        </div>
+
+                        {!domisiliSama && (
+                            <>
                                 <Field id="alamat_domisili" label="Alamat domisili" error={err.alamat_domisili} required>
                                     <textarea
                                         {...text('alamat_domisili')}
@@ -430,15 +484,14 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                         placeholder="Jalan, nomor, RT/RW"
                                     />
                                 </Field>
-                            )}
-                            {domisiliSama && <InputError message={err.alamat_domisili} />}
-                        </div>
 
-                        <PilihWilayah
-                            value={{ provinsi: data.provinsi, kota: data.kota, kecamatan: data.kecamatan, kelurahan: data.kelurahan }}
-                            onChange={(perubahan) => setData((current) => ({ ...current, ...perubahan }))}
-                            errors={err}
-                        />
+                                <PilihWilayah
+                                    value={wilayahDari(data, '')}
+                                    onChange={(perubahan) => setData((current) => ({ ...current, ...perubahan }))}
+                                    errors={err}
+                                />
+                            </>
+                        )}
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <Field id="kode_pos" label="Kode pos" error={err.kode_pos} required>
@@ -485,8 +538,16 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                         </div>
 
                         <Field id="alamat_kantor" label="Alamat kantor" error={err.alamat_kantor}>
-                            <textarea {...text('alamat_kantor')} rows={2} className={textareaClass} />
+                            <textarea {...text('alamat_kantor')} rows={2} className={textareaClass} placeholder="Jalan, nomor, nama gedung" />
                         </Field>
+
+                        <PilihWilayah
+                            akhiran="_kantor"
+                            wajib={false}
+                            value={wilayahDari(data, '_kantor')}
+                            onChange={(perubahan) => setData((current) => ({ ...current, ...kolomWilayah(perubahan, '_kantor') }))}
+                            errors={err}
+                        />
 
                         <div className="grid gap-6 md:grid-cols-3">
                             <Field id="kode_pos_kantor" label="Kode pos kantor" error={err.kode_pos_kantor}>

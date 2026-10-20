@@ -97,7 +97,7 @@ class PeriodePendaftaran extends Model
      */
     public function lokasiSkema(int $idSkema): Collection
     {
-        return $this->tuk()->wherePivot('id_skema', $idSkema)->orderBy('nama')->get(['tuk.id_tuk', 'tuk.ulid', 'tuk.nama', 'tuk.alamat']);
+        return $this->tuk()->wherePivot('id_skema', $idSkema)->orderBy('nama')->get(['tuk.id_tuk', 'tuk.ulid', 'tuk.nama', ...array_map(fn (string $kolom) => "tuk.{$kolom}", Tuk::KOLOM_ALAMAT)]);
     }
 
     /**

@@ -25,13 +25,17 @@ class TukController extends Controller
                 $keyword = '%'.mb_strtolower($search).'%';
 
                 $query->where(function ($query) use ($keyword) {
-                    $query->whereRaw('lower(nama) like ?', [$keyword])
-                        ->orWhereRaw('lower(alamat) like ?', [$keyword]);
+                    $query->whereRaw('lower(nama) like ?', [$keyword]);
+
+                    foreach (Tuk::KOLOM_ALAMAT as $kolom) {
+                        $query->orWhereRaw("lower({$kolom}) like ?", [$keyword]);
+                    }
                 });
             })
             ->orderBy('nama')
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Tuk $tuk) => $tuk->ringkas());
 
         return Inertia::render('master/tuk/index', [
             'tuk' => $tuk,
@@ -64,7 +68,7 @@ class TukController extends Controller
     public function edit(Tuk $tuk): Response
     {
         return Inertia::render('master/tuk/edit', [
-            'tuk' => $tuk->only(['id_tuk', 'ulid', 'nama', 'alamat']),
+            'tuk' => $tuk->only(['id_tuk', 'ulid', 'nama', ...Tuk::KOLOM_ALAMAT]),
         ]);
     }
 
