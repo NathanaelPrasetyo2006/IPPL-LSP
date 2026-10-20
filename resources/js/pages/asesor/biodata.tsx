@@ -55,6 +55,11 @@ type TextField = Exclude<keyof BiodataForm, '_method' | 'pas_foto'>;
 const textareaClass =
     'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-base focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden md:text-sm';
 
+/** Penanda kolom wajib, sama seperti di formulir APL-01. */
+function Wajib() {
+    return <span className="text-red-600"> *</span>;
+}
+
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
     return (
         <section className="grid gap-6 border-b p-6 last:border-b-0 lg:grid-cols-[220px_1fr]">
@@ -191,13 +196,19 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="bidang_keahlian">Bidang keahlian *</Label>
+                                <Label htmlFor="bidang_keahlian">
+                                    Bidang keahlian
+                                    <Wajib />
+                                </Label>
                                 <Input {...field('bidang_keahlian')} required autoComplete="off" placeholder="Contoh: Teknologi Informasi" />
                                 <InputError message={errors.bidang_keahlian} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="masa_berlaku_sertifikat">Sertifikat asesor berlaku s.d. *</Label>
+                                <Label htmlFor="masa_berlaku_sertifikat">
+                                    Sertifikat asesor berlaku s.d.
+                                    <Wajib />
+                                </Label>
                                 <DateInput {...field('masa_berlaku_sertifikat')} required />
                                 <p className="text-muted-foreground text-xs">Tanggal akhir masa berlaku sertifikat asesor (MET) dari BNSP.</p>
                                 <InputError message={errors.masa_berlaku_sertifikat} />
@@ -227,7 +238,16 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             </div>
 
                             <div className="grid flex-1 gap-2">
-                                <Label htmlFor="pas_foto">{asesor.foto_url ? 'Ganti pas foto' : 'Unggah pas foto *'}</Label>
+                                <Label htmlFor="pas_foto">
+                                    {asesor.foto_url ? (
+                                        'Ganti pas foto'
+                                    ) : (
+                                        <>
+                                            Unggah pas foto
+                                            <Wajib />
+                                        </>
+                                    )}
+                                </Label>
                                 <div className="flex items-center gap-1.5">
                                     <Input
                                         // URL foto berubah setelah unggah berhasil, sehingga input file ikut dikosongkan.
@@ -271,7 +291,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                     <Section title="Data Pribadi" description="Sesuai KTP. NIK dipakai sebagai identitas unik asesor.">
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="nik">NIK *</Label>
+                                <Label htmlFor="nik">
+                                    NIK
+                                    <Wajib />
+                                </Label>
                                 <Input
                                     {...field('nik')}
                                     onChange={(e) => setData('nik', e.target.value.replace(/\D/g, '').slice(0, 16))}
@@ -284,7 +307,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="jenis_kelamin">Jenis kelamin *</Label>
+                                <Label htmlFor="jenis_kelamin">
+                                    Jenis kelamin
+                                    <Wajib />
+                                </Label>
                                 <Select value={data.jenis_kelamin} onValueChange={(value) => setData('jenis_kelamin', value)}>
                                     <SelectTrigger id="jenis_kelamin">
                                         <SelectValue placeholder="Pilih jenis kelamin" />
@@ -303,13 +329,19 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="tempat_lahir">Tempat lahir *</Label>
+                                <Label htmlFor="tempat_lahir">
+                                    Tempat lahir
+                                    <Wajib />
+                                </Label>
                                 <Input {...field('tempat_lahir')} required autoComplete="off" placeholder="Contoh: Surabaya" />
                                 <InputError message={errors.tempat_lahir} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="tgl_lahir">Tanggal lahir *</Label>
+                                <Label htmlFor="tgl_lahir">
+                                    Tanggal lahir
+                                    <Wajib />
+                                </Label>
                                 <DateInput {...field('tgl_lahir')} required autoComplete="bday" />
                                 <InputError message={errors.tgl_lahir} />
                             </div>
@@ -317,7 +349,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="pendidikan_terakhir">Pendidikan terakhir *</Label>
+                                <Label htmlFor="pendidikan_terakhir">
+                                    Pendidikan terakhir
+                                    <Wajib />
+                                </Label>
                                 <Select value={data.pendidikan_terakhir} onValueChange={(value) => setData('pendidikan_terakhir', value)}>
                                     <SelectTrigger id="pendidikan_terakhir">
                                         <SelectValue placeholder="Pilih jenjang pendidikan" />
@@ -334,7 +369,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="no_telp">No. telepon / WhatsApp *</Label>
+                                <Label htmlFor="no_telp">
+                                    No. telepon / WhatsApp
+                                    <Wajib />
+                                </Label>
                                 <Input {...field('no_telp')} type="tel" required autoComplete="tel" placeholder="Contoh: 081234567890" />
                                 <InputError message={errors.no_telp} />
                             </div>
@@ -343,7 +381,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                     <Section title="Alamat" description="Alamat domisili saat ini untuk keperluan korespondensi.">
                         <div className="grid gap-2">
-                            <Label htmlFor="alamat">Detail alamat *</Label>
+                            <Label htmlFor="alamat">
+                                Detail alamat
+                                <Wajib />
+                            </Label>
                             <textarea {...field('alamat')} required rows={2} className={textareaClass} placeholder="Nama jalan, nomor rumah, RT/RW" />
                             <InputError message={errors.alamat} />
                         </div>
