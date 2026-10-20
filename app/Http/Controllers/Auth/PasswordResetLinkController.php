@@ -23,11 +23,16 @@ class PasswordResetLinkController extends Controller
      */
     public const SESSION = 'reset_password';
 
+    /**
+     * Membuka langkah 1 selalu memulai proses baru: email dikosongkan dan proses sebelumnya
+     * (termasuk milik peran lain) dibuang, supaya email lama tidak terbawa.
+     */
     public function create(Request $request, UserRole $role): Response
     {
+        $request->session()->forget(self::SESSION);
+
         return Inertia::render('auth/forgot-password', [
             'role' => $role->value,
-            'email' => $request->session()->get(self::SESSION.'.email', ''),
         ]);
     }
 

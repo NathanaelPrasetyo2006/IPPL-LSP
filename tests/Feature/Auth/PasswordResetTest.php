@@ -27,6 +27,17 @@ test('forgot password screen can be rendered for each role', function (string $r
     $this->get("/forgot-password/{$role}")->assertStatus(200);
 })->with(['admin', 'asesor', 'asesi']);
 
+test('leaving the forgot password flow clears the typed email, also across roles', function () {
+    $user = User::factory()->asesor()->create();
+
+    $this->post('/forgot-password/asesor', ['email' => $user->email])->assertRedirect(route('password.otp', 'asesor'));
+
+    // Pindah ke lupa password peran lain lalu kembali: email lama tidak terbawa dan prosesnya dimulai ulang.
+    $this->get('/forgot-password/asesi')->assertInertia(fn ($page) => $page->component('auth/forgot-password')->missing('email'));
+    $this->get('/forgot-password/asesor')->assertInertia(fn ($page) => $page->missing('email'));
+    $this->get('/forgot-password/asesor/kode')->assertRedirect(route('password.request', 'asesor'));
+});
+
 test('an unknown email or another role gets a clear error and no code', function () {
     $user = User::factory()->create();
 

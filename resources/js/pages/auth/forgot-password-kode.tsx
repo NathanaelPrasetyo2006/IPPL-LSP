@@ -22,7 +22,7 @@ export default function ForgotPasswordKode({ role, email, otp }: ForgotPasswordK
         <AuthLayout
             title="Masukkan Kode Verifikasi"
             description={`Kode 6 digit sudah dikirim ke ${email}. Periksa juga folder spam.`}
-            header={<RoleBadge role={role} caption="Lupa password · 2 dari 3" />}
+            header={<RoleBadge role={role} caption="Lupa password · 2 dari 3" gantiPeran={false} />}
         >
             <Head title={`Kode Verifikasi ${meta.label}`} />
 

@@ -7,7 +7,6 @@ import Requirement from '@/components/auth/password-requirement';
 import RoleBadge from '@/components/auth/role-badge';
 import { ROLES } from '@/components/auth/roles';
 import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
@@ -40,7 +39,7 @@ export default function ResetPassword({ role, email }: ResetPasswordProps) {
         <AuthLayout
             title="Buat Password Baru"
             description={`Kode benar. Buat password baru untuk akun ${email}.`}
-            header={<RoleBadge role={role} caption="Lupa password · 3 dari 3" />}
+            header={<RoleBadge role={role} caption="Lupa password · 3 dari 3" gantiPeran={false} />}
         >
             <Head title={`Password Baru ${meta.label}`} />
 
@@ -82,12 +81,6 @@ export default function ResetPassword({ role, email }: ResetPasswordProps) {
                     Simpan password baru
                 </Button>
             </form>
-
-            <div className="mt-6 border-t pt-4 text-center text-sm">
-                <TextLink href={route('login.role', role)} className="text-muted-foreground">
-                    Batal dan kembali ke halaman masuk
-                </TextLink>
-            </div>
         </AuthLayout>
     );
 }

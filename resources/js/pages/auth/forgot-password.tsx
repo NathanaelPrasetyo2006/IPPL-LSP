@@ -12,14 +12,8 @@ import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { type UserRole } from '@/types';
 
-interface ForgotPasswordProps {
-    role: UserRole;
-    /** Email yang sebelumnya dimasukkan, bila pengguna kembali dari langkah kode. */
-    email: string;
-}
-
-export default function ForgotPassword({ role, email }: ForgotPasswordProps) {
-    const { data, setData, post, processing, errors } = useForm({ email });
+export default function ForgotPassword({ role }: { role: UserRole }) {
+    const { data, setData, post, processing, errors } = useForm({ email: '' });
 
     const meta = ROLES[role];
 

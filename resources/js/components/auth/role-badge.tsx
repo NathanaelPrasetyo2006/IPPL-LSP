@@ -7,8 +7,9 @@ import { ArrowLeftRight } from 'lucide-react';
 
 /**
  * Penanda peran di bagian atas kartu formulir auth, dengan tautan kembali ke portal.
+ * Tautan bisa disembunyikan di langkah yang tidak boleh tertinggal karena salah pencet.
  */
-export default function RoleBadge({ role, caption = 'Portal' }: { role: UserRole; caption?: string }) {
+export default function RoleBadge({ role, caption = 'Portal', gantiPeran = true }: { role: UserRole; caption?: string; gantiPeran?: boolean }) {
     const meta = ROLES[role];
 
     return (
@@ -22,13 +23,15 @@ export default function RoleBadge({ role, caption = 'Portal' }: { role: UserRole
                 <p className="truncate text-sm leading-tight font-semibold">{meta.label}</p>
             </div>
 
-            <Link
-                href={route('login')}
-                className="text-muted-foreground hover:text-foreground hover:bg-background inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
-            >
-                <ArrowLeftRight className="size-3.5" />
-                Ganti peran
-            </Link>
+            {gantiPeran && (
+                <Link
+                    href={route('login')}
+                    className="text-muted-foreground hover:text-foreground hover:bg-background inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors"
+                >
+                    <ArrowLeftRight className="size-3.5" />
+                    Ganti peran
+                </Link>
+            )}
         </div>
     );
 }
