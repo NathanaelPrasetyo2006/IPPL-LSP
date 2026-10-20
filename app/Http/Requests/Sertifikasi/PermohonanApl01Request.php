@@ -74,6 +74,7 @@ class PermohonanApl01Request extends FormRequest
         $skema = $permohonan?->skema ?? $this->route('skema');
 
         $dokumenPermohonan = $permohonan?->dokumen->pluck('jenis')->map->value->all() ?? [];
+        $dokumenSebelumnya = $dataDiri?->dokumenDipakaiUlang($permohonan)->keys()->all() ?? [];
 
         $rules = [
             // Bagian 1a: data pribadi.
@@ -126,12 +127,12 @@ class PermohonanApl01Request extends FormRequest
             'dokumen' => ['nullable', 'array'],
         ];
 
-        // Bagian 3: dokumen. Dokumen yang sudah tersimpan (identitas di profil, atau dokumen permohonan
-        // yang sedang diperbaiki) boleh tidak diunggah ulang.
+        // Bagian 3: dokumen. Dokumen yang sudah tersimpan (identitas di profil, dokumen permohonan yang
+        // sedang diperbaiki, atau ijazah/transkrip dari permohonan sebelumnya) boleh tidak diunggah ulang.
         foreach (JenisDokumen::cases() as $jenis) {
             $sudahAda = $jenis->identitas()
                 ? filled($dataDiri?->{$jenis->kolomDataDiri()})
-                : in_array($jenis->value, $dokumenPermohonan, true);
+                : in_array($jenis->value, [...$dokumenPermohonan, ...$dokumenSebelumnya], true);
 
             $rules["dokumen.{$jenis->value}"] = [
                 $jenis->wajib() && ! $sudahAda ? 'required' : 'nullable',

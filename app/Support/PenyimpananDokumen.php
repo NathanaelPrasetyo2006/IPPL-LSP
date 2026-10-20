@@ -31,6 +31,18 @@ class PenyimpananDokumen
     }
 
     /**
+     * Salin file yang sudah tersimpan ke folder lain dengan pola nama yang sama seperti simpan().
+     */
+    public static function salin(string $path, string $folder, JenisDokumen $jenis): string
+    {
+        $tujuan = sprintf('%s/%s_%s_%s.%s', $folder, $jenis->value, now()->format('Ymd-His'), Str::lower(Str::random(4)), pathinfo($path, PATHINFO_EXTENSION));
+
+        Storage::disk(self::DISK)->copy($path, $tujuan);
+
+        return $tujuan;
+    }
+
+    /**
      * @param  list<string|null>  $paths
      */
     public static function hapus(array $paths): void

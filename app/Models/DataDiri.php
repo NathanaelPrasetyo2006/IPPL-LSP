@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\JenisDokumen;
+use App\Support\PenyimpananDokumen;
 use Database\Factories\DataDiriFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -116,6 +120,29 @@ class DataDiri extends Model
     public function permohonan(): HasMany
     {
         return $this->hasMany(PermohonanSertifikasi::class, 'id_data_diri', 'id_data_diri');
+    }
+
+    /**
+     * Dokumen terbaru per jenis dari permohonan sebelumnya yang boleh dipakai ulang
+     * (lihat JenisDokumen::dipakaiUlang()), selain milik $kecuali. Hanya yang file-nya masih ada.
+     *
+     * @return Collection<string, DokumenPermohonan>
+     */
+    public function dokumenDipakaiUlang(?PermohonanSertifikasi $kecuali = null): Collection
+    {
+        $jenis = array_map(fn (JenisDokumen $j) => $j->value, array_filter(JenisDokumen::cases(), fn (JenisDokumen $j) => $j->dipakaiUlang()));
+
+        return DokumenPermohonan::query()
+            ->whereIn('jenis', $jenis)
+            ->whereHas('permohonan', fn ($query) => $query
+                ->where('id_data_diri', $this->id_data_diri)
+                ->when($kecuali, fn ($query) => $query->whereKeyNot($kecuali->id_permohonan)))
+            ->with('permohonan')
+            ->orderByDesc('id_dokumen')
+            ->get()
+            ->filter(fn (DokumenPermohonan $dokumen) => Storage::disk(PenyimpananDokumen::DISK)->exists($dokumen->path))
+            ->unique(fn (DokumenPermohonan $dokumen) => $dokumen->jenis->value)
+            ->keyBy(fn (DokumenPermohonan $dokumen) => $dokumen->jenis->value);
     }
 
     /**

@@ -75,11 +75,12 @@ interface CreateProps {
     kodeAsesi: string | null;
     email: string;
     profil: Partial<Record<keyof Profil, string | number | null>>;
-    /** URL dokumen yang sudah tersimpan per jenis: identitas dari profil, dokumen lain dari permohonan yang diperbaiki. */
+    /** URL dokumen yang sudah tersimpan per jenis: identitas dari profil, dokumen lain dari permohonan yang diajukan ulang. */
     dokumenTersimpan: Record<string, string | null>;
-    /** Terisi saat memperbaiki permohonan yang ditolak; null untuk pendaftaran baru. */
+    /** Terisi saat mengajukan ulang permohonan yang ditolak/dibatalkan; null untuk pendaftaran baru. */
     perbaikan: {
         ulid: string;
+        status: 'ditolak' | 'dibatalkan';
         nomor: string;
         catatan_verifikasi: string | null;
         tujuan_asesmen: string;
@@ -284,6 +285,8 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         });
     };
 
+    const judulUlang = perbaikan?.status === 'dibatalkan' ? 'Ajukan Ulang' : 'Perbaiki';
+
     const kelompokDokumen = [
         {
             judul: 'Bukti administratif',
@@ -299,13 +302,13 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={perbaikan ? `Perbaiki ${perbaikan.nomor}` : 'Formulir APL-01'} />
+            <Head title={perbaikan ? `${judulUlang} ${perbaikan.nomor}` : 'Formulir APL-01'} />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div>
                     <p className="text-muted-foreground text-sm font-medium">FR-APL-01</p>
                     <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-                        {perbaikan ? `Perbaiki Permohonan ${perbaikan.nomor}` : 'Permohonan Sertifikasi Kompetensi'}
+                        {perbaikan ? `${judulUlang} Permohonan ${perbaikan.nomor}` : 'Permohonan Sertifikasi Kompetensi'}
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
                         Skema <span className="text-foreground font-medium">{skema.judul}</span> · {periode.nama} · pendaftaran ditutup{' '}
@@ -319,12 +322,23 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                     </p>
                 </div>
 
-                {perbaikan && (
+                {perbaikan?.status === 'ditolak' && (
                     <Alert className="max-w-5xl border-red-500/40 bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200">
                         <AlertDescription>
                             <p className="font-medium">Permohonan ini ditolak. Perbaiki sesuai catatan verifikator, lalu ajukan ulang.</p>
                             {perbaikan.catatan_verifikasi && <p className="mt-1 whitespace-pre-line">{perbaikan.catatan_verifikasi}</p>}
                             <p className="mt-1 text-xs opacity-80">Dokumen yang sudah tersimpan tetap dipakai; unggah hanya yang perlu diganti.</p>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {perbaikan?.status === 'dibatalkan' && (
+                    <Alert className="max-w-5xl border-slate-400/40 bg-slate-50 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200">
+                        <AlertDescription>
+                            <p className="font-medium">Permohonan ini sebelumnya Anda batalkan. Periksa kembali isian, lalu ajukan ulang.</p>
+                            <p className="mt-1 text-xs opacity-80">
+                                Nomor permohonan dan dokumen yang sudah tersimpan tetap dipakai; unggah hanya yang perlu diganti.
+                            </p>
                         </AlertDescription>
                     </Alert>
                 )}

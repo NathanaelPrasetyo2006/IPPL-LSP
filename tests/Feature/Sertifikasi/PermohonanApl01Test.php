@@ -250,6 +250,66 @@ test('asesi can cancel a pending application and then choose another scheme', fu
     expect(PermohonanSertifikasi::where('status', 'diajukan')->sole()->id_skema)->toBe($skemaLain->id_skema);
 });
 
+test('a cancelled application is resubmitted as the same application with its documents', function () {
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $permohonan = PermohonanSertifikasi::sole();
+    $ijazah = $permohonan->dokumen()->where('jenis', 'ijazah')->value('path');
+
+    $this->actingAs($this->user)->post("/sertifikasi/permohonan/{$permohonan->ulid}/batal");
+
+    // Mendaftar skema yang sama lagi membuka permohonan lama, bukan membuat yang baru.
+    $this->actingAs($this->user)->get(urlDaftar($this->periode, $this->skema))->assertRedirect(route('sertifikasi.perbaiki', $permohonan));
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01())->assertSessionHas('error');
+
+    $this->actingAs($this->user)
+        ->get(route('sertifikasi.perbaiki', $permohonan))
+        ->assertInertia(fn ($page) => $page
+            ->where('perbaikan.status', 'dibatalkan')
+            ->where('dokumenTersimpan.ijazah', route('dokumen.permohonan', [$permohonan, 'ijazah'])));
+
+    $this->actingAs($this->user)
+        ->post(route('sertifikasi.perbaiki.store', $permohonan), dataApl01(['dokumen' => []]))
+        ->assertSessionHasNoErrors();
+
+    $permohonan->refresh();
+
+    expect(PermohonanSertifikasi::count())->toBe(1)
+        ->and($permohonan->status)->toBe(StatusPermohonan::Diajukan)
+        ->and($permohonan->dokumen()->where('jenis', 'ijazah')->value('path'))->toBe($ijazah)
+        ->and($permohonan->riwayatStatus->last()->catatan)->toBe('Diajukan ulang setelah dibatalkan.');
+
+    Storage::disk('local')->assertExists($ijazah);
+});
+
+test('ijazah from a previous application is reused when it is not uploaded again', function () {
+    $skemaLain = SkemaSertifikasi::factory()->create();
+    $this->periode->skema()->attach($skemaLain->id_skema);
+    $this->periode->simpanLokasi([['id_tuk' => $this->tuk->id_tuk, 'skema' => [$this->skema->id_skema, $skemaLain->id_skema]]]);
+
+    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
+    $lama = PermohonanSertifikasi::sole();
+    $this->actingAs($this->user)->post("/sertifikasi/permohonan/{$lama->ulid}/batal");
+
+    // Form permohonan baru menampilkan ijazah yang sudah tersimpan, tetapi bukan dokumen lain yang khusus per skema.
+    $this->actingAs($this->user)
+        ->get(urlDaftar($this->periode, $skemaLain))
+        ->assertInertia(fn ($page) => $page
+            ->where('dokumenTersimpan.ijazah', route('dokumen.permohonan', [$lama, 'ijazah']))
+            ->where('dokumenTersimpan.portofolio', null));
+
+    $this->actingAs($this->user)
+        ->post(urlDaftar($this->periode, $skemaLain), dataApl01(['dokumen' => []]))
+        ->assertSessionHasNoErrors();
+
+    $baru = PermohonanSertifikasi::where('status', 'diajukan')->sole();
+    $ijazahLama = $lama->dokumen()->where('jenis', 'ijazah')->value('path');
+    $ijazahBaru = $baru->dokumen()->where('jenis', 'ijazah')->value('path');
+
+    // File disalin ke folder permohonan baru, jadi file lama tetap utuh.
+    expect($ijazahBaru)->toStartWith($baru->folderDokumen().'/ijazah_')->not->toBe($ijazahLama);
+    Storage::disk('local')->assertExists([$ijazahLama, $ijazahBaru]);
+});
+
 test('an application that is already verified cannot be cancelled by the asesi', function () {
     $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01());
     $permohonan = PermohonanSertifikasi::sole();
@@ -389,13 +449,15 @@ test('WNI is always stored as Indonesia and WNA must choose another country', fu
     $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wni', 'id_negara' => $jepang]))->assertSessionHasNoErrors();
     expect($this->dataDiri->fresh()->id_negara)->toBe($this->idIndonesia);
 
-    PermohonanSertifikasi::sole()->update(['status' => StatusPermohonan::Dibatalkan]);
+    $permohonan = PermohonanSertifikasi::sole();
+    $permohonan->update(['status' => StatusPermohonan::Dibatalkan]);
 
+    // Permohonan yang dibatalkan diajukan ulang lewat permohonan yang sama.
     $this->actingAs($this->user)
-        ->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $this->idIndonesia]))
+        ->post(route('sertifikasi.perbaiki.store', $permohonan), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $this->idIndonesia]))
         ->assertSessionHasErrors('id_negara');
 
-    $this->actingAs($this->user)->post(urlDaftar($this->periode, $this->skema), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $jepang]))->assertSessionHasNoErrors();
+    $this->actingAs($this->user)->post(route('sertifikasi.perbaiki.store', $permohonan), dataApl01(['kebangsaan' => 'wna', 'id_negara' => $jepang]))->assertSessionHasNoErrors();
     expect($this->dataDiri->fresh()->id_negara)->toBe($jepang);
 });
 

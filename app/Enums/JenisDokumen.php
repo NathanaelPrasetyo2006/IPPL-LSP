@@ -44,6 +44,15 @@ enum JenisDokumen: string
     }
 
     /**
+     * Dokumen pendidikan yang sama untuk semua skema. Bila tidak diunggah ulang, file dari
+     * permohonan sebelumnya disalin ke permohonan baru (mis. setelah permohonan dibatalkan).
+     */
+    public function dipakaiUlang(): bool
+    {
+        return in_array($this, [self::Ijazah, self::Transkrip], true);
+    }
+
+    /**
      * Dokumen identitas yang melekat ke profil asesi, bukan ke satu permohonan.
      */
     public function identitas(): bool

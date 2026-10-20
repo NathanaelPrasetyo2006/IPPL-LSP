@@ -67,7 +67,9 @@ class PendaftaranSertifikasiController extends Controller
                     'kuota_penuh' => $periode->kuotaPenuh(),
                     'skema_terdaftar' => $aktif?->skema?->judul,
                     'skema' => $periode->skema->map(function (SkemaSertifikasi $skema) use ($aktif, $milikPeriode) {
-                        $ditolak = $milikPeriode->first(fn (PermohonanSertifikasi $p) => $p->id_skema === $skema->id_skema && $p->status === StatusPermohonan::Ditolak);
+                        // Permohonan terakhir yang ditolak/dibatalkan untuk skema ini diajukan ulang, bukan dibuat baru.
+                        $sebelumnya = $milikPeriode->first(fn (PermohonanSertifikasi $p) => $p->id_skema === $skema->id_skema
+                            && in_array($p->status, [StatusPermohonan::Ditolak, StatusPermohonan::Dibatalkan], true));
 
                         return [
                             'id_skema' => $skema->id_skema,
@@ -75,14 +77,15 @@ class PendaftaranSertifikasiController extends Controller
                             'judul' => $skema->judul,
                             'nomor' => $skema->nomor,
                             'unit_kompetensi_count' => $skema->unit_kompetensi_count,
-                            // terdaftar | terkunci (sudah daftar skema lain) | perbaiki (pernah ditolak) | daftar
+                            // terdaftar | terkunci (sudah daftar skema lain) | perbaiki (ditolak) | ajukan_ulang (dibatalkan) | daftar
                             'keadaan' => match (true) {
                                 $aktif?->id_skema === $skema->id_skema => 'terdaftar',
                                 $aktif !== null => 'terkunci',
-                                $ditolak !== null => 'perbaiki',
+                                $sebelumnya?->status === StatusPermohonan::Ditolak => 'perbaiki',
+                                $sebelumnya !== null => 'ajukan_ulang',
                                 default => 'daftar',
                             },
-                            'permohonan_ulid' => ($aktif?->id_skema === $skema->id_skema ? $aktif : $ditolak)?->ulid,
+                            'permohonan_ulid' => ($aktif?->id_skema === $skema->id_skema ? $aktif : $sebelumnya)?->ulid,
                         ];
                     })->values(),
                 ];
@@ -100,11 +103,12 @@ class PendaftaranSertifikasiController extends Controller
      */
     public function create(Request $request, PeriodePendaftaran $periode, SkemaSertifikasi $skema): Response|RedirectResponse
     {
-        // Skema yang pernah ditolak pada periode ini diperbaiki, bukan didaftarkan ulang sebagai permohonan baru.
-        $ditolak = $this->permohonanDitolak($request->user(), $periode, $skema);
+        // Skema yang pernah ditolak atau dibatalkan pada periode ini diajukan ulang memakai permohonan yang sama
+        // (nomor, folder, dan dokumen tetap), bukan didaftarkan sebagai permohonan baru.
+        $sebelumnya = $this->permohonanUntukDiajukanUlang($request->user(), $periode, $skema);
 
-        if ($ditolak) {
-            return to_route('sertifikasi.perbaiki', $ditolak);
+        if ($sebelumnya) {
+            return to_route('sertifikasi.perbaiki', $sebelumnya);
         }
 
         if ($alasan = $this->alasanTidakBisaDaftar($request->user(), $periode, $skema)) {
@@ -119,8 +123,8 @@ class PendaftaranSertifikasiController extends Controller
      */
     public function store(PermohonanApl01Request $request, PeriodePendaftaran $periode, SkemaSertifikasi $skema): RedirectResponse
     {
-        if ($this->permohonanDitolak($request->user(), $periode, $skema) || ($alasan = $this->alasanTidakBisaDaftar($request->user(), $periode, $skema))) {
-            return to_route('sertifikasi.index')->with('error', $alasan ?? 'Perbaiki permohonan yang ditolak untuk skema ini.');
+        if ($this->permohonanUntukDiajukanUlang($request->user(), $periode, $skema) || ($alasan = $this->alasanTidakBisaDaftar($request->user(), $periode, $skema))) {
+            return to_route('sertifikasi.index')->with('error', $alasan ?? 'Ajukan ulang permohonan sebelumnya untuk skema ini.');
         }
 
         $permohonan = $this->simpanApl01($request, $periode, $skema, null);
@@ -190,8 +194,8 @@ class PendaftaranSertifikasiController extends Controller
         return Inertia::render('sertifikasi/show', [
             'permohonan' => PermohonanPresenter::detail($permohonan),
             'lokasiTersedia' => $permohonan->perluPilihLokasi() ? $this->lokasiOptions($permohonan->periode, $permohonan->id_skema) : [],
-            // Permohonan yang ditolak bisa diperbaiki dan diajukan lagi selama periode masih dibuka.
-            'bisaPerbaiki' => $permohonan->status === StatusPermohonan::Ditolak && $this->alasanTidakBisaPerbaiki($permohonan) === null,
+            // Permohonan yang ditolak atau dibatalkan bisa diajukan lagi selama periode masih dibuka.
+            'bisaPerbaiki' => $this->alasanTidakBisaPerbaiki($permohonan) === null,
             'bisaBatal' => $permohonan->status === StatusPermohonan::Diajukan,
         ]);
     }
@@ -248,6 +252,7 @@ class PendaftaranSertifikasiController extends Controller
         $profil['id_negara'] ??= $idIndonesia;
 
         $dokumenPermohonan = $permohonan?->dokumen->keyBy(fn ($dokumen) => $dokumen->jenis->value);
+        $dokumenSebelumnya = $dataDiri?->dokumenDipakaiUlang($permohonan) ?? collect();
 
         return [
             'periode' => [
@@ -267,20 +272,23 @@ class PendaftaranSertifikasiController extends Controller
             'kodeAsesi' => $dataDiri?->kode_asesi,
             'email' => $request->user()->email,
             'profil' => $profil,
-            // Mode perbaiki: permohonan yang ditolak beserta isian sebelumnya.
+            // Mode perbaiki: permohonan yang ditolak/dibatalkan beserta isian sebelumnya.
             'perbaikan' => $permohonan ? [
                 'ulid' => $permohonan->ulid,
+                'status' => $permohonan->status->value,
                 'nomor' => $permohonan->nomor,
                 'catatan_verifikasi' => $permohonan->catatan_verifikasi,
                 'tujuan_asesmen' => $permohonan->tujuan_asesmen->value,
                 'tujuan_asesmen_lainnya' => $permohonan->tujuan_asesmen_lainnya,
                 'id_tuk' => $permohonan->id_tuk,
             ] : null,
-            // URL dokumen yang sudah tersimpan per jenis: identitas dari profil, sisanya dari permohonan yang diperbaiki.
+            // URL dokumen yang sudah tersimpan per jenis: identitas dari profil, sisanya dari permohonan yang
+            // diperbaiki, dan ijazah/transkrip dari permohonan sebelumnya bila belum ada.
             'dokumenTersimpan' => collect(JenisDokumen::cases())->mapWithKeys(fn (JenisDokumen $jenis) => [
                 $jenis->value => match (true) {
                     $jenis->identitas() => filled($dataDiri?->{$jenis->kolomDataDiri()}) ? route('sertifikasi.dokumen-saya', $jenis->value) : null,
                     $dokumenPermohonan?->has($jenis->value) ?? false => route('dokumen.permohonan', [$permohonan, $jenis->value]),
+                    $dokumenSebelumnya->has($jenis->value) => route('dokumen.permohonan', [$dokumenSebelumnya[$jenis->value]->permohonan, $jenis->value]),
                     default => null,
                 },
             ]),
@@ -306,9 +314,10 @@ class PendaftaranSertifikasiController extends Controller
         $data = $request->validated();
         $fileBaru = [];
         $fileLama = [];
+        $dokumenSebelumnya = $user->dataDiri?->dokumenDipakaiUlang($permohonan) ?? collect();
 
         try {
-            $permohonan = DB::transaction(function () use ($user, $data, $request, $periode, $skema, $permohonan, &$fileBaru, &$fileLama) {
+            $permohonan = DB::transaction(function () use ($user, $data, $request, $periode, $skema, $permohonan, $dokumenSebelumnya, &$fileBaru, &$fileLama) {
                 $dataDiri = $user->dataDiri ?? new DataDiri(['id_user' => $user->id_user]);
                 $dataDiri->fill(Arr::only($data, PermohonanApl01Request::KOLOM_DATA_DIRI))->save();
 
@@ -334,6 +343,8 @@ class PendaftaranSertifikasiController extends Controller
                 ];
 
                 if ($permohonan) {
+                    $statusSebelumnya = $permohonan->status;
+
                     // Hasil verifikasi sebelumnya sudah tercatat di riwayat status, jadi aman dikosongkan.
                     $permohonan->update([
                         ...$isian,
@@ -342,7 +353,9 @@ class PendaftaranSertifikasiController extends Controller
                         'id_verifikator' => null,
                         'diverifikasi_pada' => null,
                     ]);
-                    $permohonan->catatStatus(StatusPermohonan::Diajukan, 'Diajukan ulang setelah diperbaiki.', $user);
+                    $permohonan->catatStatus(StatusPermohonan::Diajukan, $statusSebelumnya === StatusPermohonan::Dibatalkan
+                        ? 'Diajukan ulang setelah dibatalkan.'
+                        : 'Diajukan ulang setelah diperbaiki.', $user);
 
                     if ($permohonan->id_tuk !== (int) $data['id_tuk']) {
                         $permohonan->gantiLokasi((int) $data['id_tuk'], 'Diubah saat memperbaiki permohonan.', $user);
@@ -362,7 +375,25 @@ class PendaftaranSertifikasiController extends Controller
 
                 // Bukti persyaratan dasar disimpan di folder milik permohonan ini; file yang diganti menimpa data lamanya.
                 foreach (JenisDokumen::cases() as $jenis) {
-                    if ($jenis->identitas() || ! $request->hasFile("dokumen.{$jenis->value}")) {
+                    if ($jenis->identitas()) {
+                        continue;
+                    }
+
+                    if (! $request->hasFile("dokumen.{$jenis->value}")) {
+                        // Ijazah/transkrip yang tidak diunggah ulang disalin dari permohonan sebelumnya,
+                        // supaya tiap permohonan tetap punya file sendiri.
+                        $sumber = $dokumenSebelumnya->get($jenis->value);
+
+                        if ($sumber && ! $permohonan->dokumen()->where('jenis', $jenis)->exists()) {
+                            $permohonan->dokumen()->create([
+                                'jenis' => $jenis,
+                                'nama_asli' => $sumber->nama_asli,
+                                'path' => $fileBaru[] = PenyimpananDokumen::salin($sumber->path, $permohonan->folderDokumen(), $jenis),
+                                'mime' => $sumber->mime,
+                                'ukuran' => $sumber->ukuran,
+                            ]);
+                        }
+
                         continue;
                     }
 
@@ -414,12 +445,12 @@ class PendaftaranSertifikasiController extends Controller
     /**
      * Permohonan ditolak terakhir milik asesi untuk skema ini pada periode ini, bila ada.
      */
-    private function permohonanDitolak(User $user, PeriodePendaftaran $periode, SkemaSertifikasi $skema): ?PermohonanSertifikasi
+    private function permohonanUntukDiajukanUlang(User $user, PeriodePendaftaran $periode, SkemaSertifikasi $skema): ?PermohonanSertifikasi
     {
         return $user->dataDiri?->permohonan()
             ->where('id_periode', $periode->id_periode)
             ->where('id_skema', $skema->id_skema)
-            ->where('status', StatusPermohonan::Ditolak)
+            ->whereIn('status', [StatusPermohonan::Ditolak, StatusPermohonan::Dibatalkan])
             ->latest('id_permohonan')
             ->first();
     }
@@ -468,8 +499,8 @@ class PendaftaranSertifikasiController extends Controller
     {
         $periode = $permohonan->periode;
 
-        if ($permohonan->status !== StatusPermohonan::Ditolak) {
-            return 'Hanya permohonan yang ditolak yang bisa diperbaiki.';
+        if (! in_array($permohonan->status, [StatusPermohonan::Ditolak, StatusPermohonan::Dibatalkan], true)) {
+            return 'Hanya permohonan yang ditolak atau dibatalkan yang bisa diajukan ulang.';
         }
 
         if ($periode->status() !== 'dibuka') {

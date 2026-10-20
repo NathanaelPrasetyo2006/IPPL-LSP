@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PermohonanRingkas, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox, Info, MapPinOff, PencilLine } from 'lucide-react';
+import { ArrowRight, BadgeCheck, CalendarRange, CircleCheck, FileText, Inbox, Info, MapPinOff, PencilLine, RotateCcw } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pendaftaran Sertifikasi', href: '/sertifikasi' }];
 
@@ -24,7 +24,7 @@ interface PeriodeDibuka {
         judul: string;
         nomor: string;
         unit_kompetensi_count: number;
-        keadaan: 'daftar' | 'terdaftar' | 'terkunci' | 'perbaiki';
+        keadaan: 'daftar' | 'terdaftar' | 'terkunci' | 'perbaiki' | 'ajukan_ulang';
         permohonan_ulid: string | null;
     }[];
 }
@@ -143,11 +143,11 @@ export default function SertifikasiIndex({ kodeAsesi, periode, permohonan }: Ind
                                                 <Button size="sm" disabled title="Satu periode hanya untuk satu skema">
                                                     Daftar
                                                 </Button>
-                                            ) : skema.keadaan === 'perbaiki' ? (
+                                            ) : skema.keadaan === 'perbaiki' || skema.keadaan === 'ajukan_ulang' ? (
                                                 <Button asChild size="sm" variant="outline">
                                                     <Link href={route('sertifikasi.perbaiki', skema.permohonan_ulid ?? '')}>
-                                                        <PencilLine />
-                                                        Perbaiki permohonan
+                                                        {skema.keadaan === 'perbaiki' ? <PencilLine /> : <RotateCcw />}
+                                                        {skema.keadaan === 'perbaiki' ? 'Perbaiki permohonan' : 'Ajukan ulang'}
                                                     </Link>
                                                 </Button>
                                             ) : (

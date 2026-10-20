@@ -9,12 +9,12 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type PermohonanDetail, type SharedData, type Tuk } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, CircleCheck, CircleX, Clock, LoaderCircle, MapPinOff, PencilLine } from 'lucide-react';
+import { ArrowLeft, Ban, CircleCheck, CircleX, Clock, LoaderCircle, MapPinOff, PencilLine, RotateCcw } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface ShowProps {
     permohonan: PermohonanDetail;
-    /** Permohonan ditolak yang masih bisa diperbaiki dan diajukan lagi. */
+    /** Permohonan ditolak/dibatalkan yang masih bisa diajukan lagi. */
     bisaPerbaiki: boolean;
     /** Masih menunggu verifikasi, jadi asesi boleh membatalkannya sendiri. */
     bisaBatal: boolean;
@@ -47,7 +47,7 @@ const HASIL = {
     dibatalkan: {
         icon: Ban,
         judul: 'Permohonan dibatalkan',
-        pesan: 'Permohonan ini sudah Anda batalkan dan tidak diperiksa admin. Silakan daftar skema lain bila periode masih dibuka.',
+        pesan: 'Permohonan ini sudah Anda batalkan dan tidak diperiksa admin. Selama periode masih dibuka, Anda bisa mengajukannya kembali atau mendaftar skema lain.',
         className: 'border-slate-400/40 bg-slate-50 text-slate-800 dark:bg-slate-900/40 dark:text-slate-200',
         iconClass: 'bg-slate-500',
     },
@@ -172,8 +172,8 @@ export default function ShowPermohonan({ permohonan, bisaPerbaiki, bisaBatal, lo
                     {bisaPerbaiki && (
                         <Button asChild className="shrink-0">
                             <Link href={route('sertifikasi.perbaiki', permohonan.ulid)}>
-                                <PencilLine />
-                                Perbaiki &amp; ajukan ulang
+                                {permohonan.status === 'dibatalkan' ? <RotateCcw /> : <PencilLine />}
+                                {permohonan.status === 'dibatalkan' ? 'Ajukan ulang' : 'Perbaiki & ajukan ulang'}
                             </Link>
                         </Button>
                     )}
@@ -207,7 +207,7 @@ export default function ShowPermohonan({ permohonan, bisaPerbaiki, bisaBatal, lo
                         <DialogTitle>Batalkan permohonan {permohonan.nomor}?</DialogTitle>
                         <DialogDescription>
                             Permohonan skema <span className="text-foreground font-medium">{permohonan.skema.judul}</span> tidak akan diperiksa admin.
-                            Setelah dibatalkan, Anda bisa mendaftar skema lain selama periode masih dibuka.
+                            Selama periode masih dibuka, Anda bisa mengajukannya kembali (nomor dan dokumen tetap) atau mendaftar skema lain.
                         </DialogDescription>
                     </DialogHeader>
 
