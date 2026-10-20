@@ -110,6 +110,12 @@ export default function PilihWilayah({ value, onChange, errors, akhiran = '', wa
     }, []);
 
     const pilih = async (tingkat: TingkatWilayah, id: string) => {
+        // Radix Select mengirim "" saat dropdown yang sudah terisi dipasang ulang (mis. setelah centang
+        // "domisili sama dengan KTP" dilepas), sebelum opsinya terdaftar. Itu bukan pilihan pengguna.
+        if (id === '' || id === terpilih[tingkat]) {
+            return;
+        }
+
         const indeks = URUTAN.indexOf(tingkat);
         const bawahnya = URUTAN.slice(indeks + 1);
         const nama = daftar[tingkat].find((opsi) => opsi.id === id)?.nama ?? '';

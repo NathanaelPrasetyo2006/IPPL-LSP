@@ -11,8 +11,8 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type AsesorBiodata, type AsesorBiodataOptions, type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { CircleCheck, IdCard, ImageUp, Info, LoaderCircle } from 'lucide-react';
-import { FormEventHandler, useEffect, useMemo } from 'react';
+import { CircleCheck, IdCard, ImageUp, Info, LoaderCircle, X } from 'lucide-react';
+import { FormEventHandler, useEffect, useMemo, useRef } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -103,6 +103,16 @@ export default function Biodata({ asesor, options }: BiodataProps) {
     }, [previewUrl]);
 
     const fotoUrl = previewUrl ?? asesor.foto_url;
+
+    // Batalkan foto yang baru dipilih; input juga dikosongkan supaya file yang sama bisa dipilih lagi.
+    const pasFotoRef = useRef<HTMLInputElement>(null);
+    const batalkanPasFoto = () => {
+        setData('pas_foto', null);
+
+        if (pasFotoRef.current) {
+            pasFotoRef.current.value = '';
+        }
+    };
 
     const field = (key: TextField) => ({
         id: key,
@@ -218,16 +228,33 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                             <div className="grid flex-1 gap-2">
                                 <Label htmlFor="pas_foto">{asesor.foto_url ? 'Ganti pas foto' : 'Unggah pas foto *'}</Label>
-                                <Input
-                                    // URL foto berubah setelah unggah berhasil, sehingga input file ikut dikosongkan.
-                                    key={asesor.foto_url ?? 'kosong'}
-                                    id="pas_foto"
-                                    type="file"
-                                    accept="image/jpeg,image/png"
-                                    onChange={(e) => setData('pas_foto', e.target.files?.[0] ?? null)}
-                                    required={!asesor.foto_url}
-                                    className="cursor-pointer"
-                                />
+                                <div className="flex items-center gap-1.5">
+                                    <Input
+                                        // URL foto berubah setelah unggah berhasil, sehingga input file ikut dikosongkan.
+                                        key={asesor.foto_url ?? 'kosong'}
+                                        ref={pasFotoRef}
+                                        id="pas_foto"
+                                        type="file"
+                                        accept="image/jpeg,image/png"
+                                        onChange={(e) => setData('pas_foto', e.target.files?.[0] ?? null)}
+                                        required={!asesor.foto_url && !data.pas_foto}
+                                        className="cursor-pointer"
+                                    />
+
+                                    {data.pas_foto && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={batalkanPasFoto}
+                                            className="text-muted-foreground shrink-0 hover:text-red-600"
+                                            title="Batalkan foto ini"
+                                            aria-label="Batalkan pas foto yang dipilih"
+                                        >
+                                            <X className="size-4" />
+                                        </Button>
+                                    )}
+                                </div>
                                 <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
                                     <ImageUp className="size-3.5" />
                                     {data.pas_foto

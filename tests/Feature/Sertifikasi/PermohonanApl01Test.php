@@ -58,7 +58,6 @@ function dataApl01(array $override = []): array
         'kota' => 'Kota Surabaya',
         'kecamatan' => 'Genteng',
         'kelurahan' => 'Embong Kaliasin',
-        'kode_pos' => '60271',
         'no_telp' => '081234567890',
         'jenjang_pendidikan' => 'S1',
         'nama_sekolah' => 'Institut Teknologi Kalimantan',
@@ -115,13 +114,12 @@ test('required documents and fields are validated', function () {
     $this->actingAs($this->user)
         ->post(urlDaftar($this->periode, $this->skema), dataApl01([
             'nik' => '123',
-            'kode_pos' => 'abc',
             'kota_ktp' => '',
             'tujuan_asesmen' => 'lainnya',
             'pernyataan' => false,
             'dokumen' => ['ktp' => UploadedFile::fake()->create('ktp.exe', 10, 'application/x-msdownload')],
         ]))
-        ->assertSessionHasErrors(['nik', 'kode_pos', 'kota_ktp', 'tujuan_asesmen_lainnya', 'pernyataan', 'dokumen.ktp', 'dokumen.pas_foto', 'dokumen.ijazah']);
+        ->assertSessionHasErrors(['nik', 'kota_ktp', 'tujuan_asesmen_lainnya', 'pernyataan', 'dokumen.ktp', 'dokumen.pas_foto', 'dokumen.ijazah']);
 
     expect(PermohonanSertifikasi::count())->toBe(0);
 });
@@ -457,7 +455,6 @@ test('office region is required only when an office address is filled and is sho
             'kota_kantor' => 'Kota Surabaya',
             'kecamatan_kantor' => 'Tegalsari',
             'kelurahan_kantor' => 'Kedungdoro',
-            'kode_pos_kantor' => '60261',
         ]))
         ->assertSessionHasNoErrors();
 
@@ -467,7 +464,7 @@ test('office region is required only when an office address is filled and is sho
         ->get(route('sertifikasi.show', PermohonanSertifikasi::sole()->ulid))
         ->assertInertia(fn ($page) => $page->where(
             'permohonan.pemohon.alamat_kantor',
-            'Jl. Basuki Rahmat No. 5, Kedungdoro, Tegalsari, Kota Surabaya, Jawa Timur, 60261',
+            'Jl. Basuki Rahmat No. 5, Kedungdoro, Tegalsari, Kota Surabaya, Jawa Timur',
         ));
 });
 
@@ -490,5 +487,5 @@ test('KTP and domicile addresses keep their own region', function () {
         ->get(route('sertifikasi.show', PermohonanSertifikasi::sole()->ulid))
         ->assertInertia(fn ($page) => $page
             ->where('permohonan.pemohon.alamat_ktp', 'Jl. Ijen No. 10, Oro-oro Dowo, Klojen, Kota Malang, Jawa Timur')
-            ->where('permohonan.pemohon.alamat_domisili', 'Jl. Pahlawan No. 1, Embong Kaliasin, Genteng, Kota Surabaya, Jawa Timur, 60271'));
+            ->where('permohonan.pemohon.alamat_domisili', 'Jl. Pahlawan No. 1, Embong Kaliasin, Genteng, Kota Surabaya, Jawa Timur'));
 });

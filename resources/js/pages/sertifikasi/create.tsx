@@ -12,7 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type JenisDokumenDef, type Tuk } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { BadgeCheck, ChevronDown, ExternalLink, FileUp, Info, LoaderCircle } from 'lucide-react';
+import { BadgeCheck, ChevronDown, ExternalLink, FileUp, Info, LoaderCircle, X } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -37,7 +37,6 @@ type Profil = {
     kota: string;
     kecamatan: string;
     kelurahan: string;
-    kode_pos: string;
     no_telp: string;
     jenjang_pendidikan: string;
     nama_sekolah: string;
@@ -49,7 +48,6 @@ type Profil = {
     kota_kantor: string;
     kecamatan_kantor: string;
     kelurahan_kantor: string;
-    kode_pos_kantor: string;
     telp_kantor: string;
     email_kantor: string;
 };
@@ -213,7 +211,6 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         kota: awal('kota'),
         kecamatan: awal('kecamatan'),
         kelurahan: awal('kelurahan'),
-        kode_pos: awal('kode_pos'),
         no_telp: awal('no_telp'),
         jenjang_pendidikan: awal('jenjang_pendidikan'),
         nama_sekolah: awal('nama_sekolah'),
@@ -225,7 +222,6 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         kota_kantor: awal('kota_kantor'),
         kecamatan_kantor: awal('kecamatan_kantor'),
         kelurahan_kantor: awal('kelurahan_kantor'),
-        kode_pos_kantor: awal('kode_pos_kantor'),
         telp_kantor: awal('telp_kantor'),
         email_kantor: awal('email_kantor'),
         tujuan_asesmen: perbaikan?.tujuan_asesmen ?? 'sertifikasi',
@@ -493,12 +489,6 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                             </>
                         )}
 
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <Field id="kode_pos" label="Kode pos" error={err.kode_pos} required>
-                                <Input {...digits('kode_pos', 5)} required autoComplete="postal-code" />
-                            </Field>
-                        </div>
-
                         <div className="grid gap-6 md:grid-cols-3">
                             <Field id="jenjang_pendidikan" label="Pendidikan terakhir" error={err.jenjang_pendidikan} required>
                                 <SelectField
@@ -549,11 +539,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                             errors={err}
                         />
 
-                        <div className="grid gap-6 md:grid-cols-3">
-                            <Field id="kode_pos_kantor" label="Kode pos kantor" error={err.kode_pos_kantor}>
-                                <Input {...digits('kode_pos_kantor', 5)} />
-                            </Field>
-
+                        <div className="grid gap-6 md:grid-cols-2">
                             <Field id="telp_kantor" label="Telepon kantor" error={err.telp_kantor}>
                                 <Input {...text('telp_kantor')} type="tel" />
                             </Field>
@@ -702,15 +688,33 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                                     <InputError message={error} className="mt-1" />
                                                 </div>
 
-                                                <label
-                                                    htmlFor={`dokumen-${def.jenis}`}
-                                                    className="border-input hover:bg-muted inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium whitespace-nowrap"
-                                                >
-                                                    <FileUp className="size-4" />
-                                                    {dipilih || tersimpan ? 'Ganti file' : 'Pilih file'}
-                                                </label>
+                                                <div className="flex items-center gap-1.5">
+                                                    <label
+                                                        htmlFor={`dokumen-${def.jenis}`}
+                                                        className="border-input hover:bg-muted inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+                                                    >
+                                                        <FileUp className="size-4" />
+                                                        {dipilih || tersimpan ? 'Ganti file' : 'Pilih file'}
+                                                    </label>
+
+                                                    {dipilih && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setDokumen(def.jenis, null)}
+                                                            className="text-muted-foreground size-8 hover:text-red-600"
+                                                            title="Batalkan file ini"
+                                                            aria-label={`Batalkan file ${def.label}`}
+                                                        >
+                                                            <X className="size-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
 
                                                 <input
+                                                    // Dipasang ulang saat file dibatalkan supaya file yang sama bisa dipilih lagi.
+                                                    key={dipilih ? 'dipilih' : 'kosong'}
                                                     id={`dokumen-${def.jenis}`}
                                                     type="file"
                                                     accept={def.accept}
