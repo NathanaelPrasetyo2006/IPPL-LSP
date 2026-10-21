@@ -132,9 +132,8 @@ function Field({
 }) {
     return (
         <div className={cn('grid content-start gap-2', className)}>
-            <Label htmlFor={id}>
+            <Label htmlFor={id} required={required}>
                 {label}
-                {required && <span className="text-red-600"> *</span>}
             </Label>
             {children}
             {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
@@ -281,7 +280,6 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
         post(perbaikan ? route('sertifikasi.perbaiki.store', perbaikan.ulid) : route('sertifikasi.store', [periode.ulid, skema.ulid]), {
             forceFormData: true,
             preserveScroll: (page) => Object.keys(page.props.errors).length > 0,
-            onError: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
         });
     };
 
@@ -665,13 +663,8 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                                 )}
                                             >
                                                 <div className="min-w-0">
-                                                    <Label htmlFor={`dokumen-${def.jenis}`} className="text-sm">
+                                                    <Label htmlFor={`dokumen-${def.jenis}`} required={def.wajib} className="text-sm">
                                                         {def.label}
-                                                        {def.wajib ? (
-                                                            <span className="text-red-600"> *</span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground ml-1 text-xs font-normal">(opsional)</span>
-                                                        )}
                                                     </Label>
 
                                                     <p className="text-muted-foreground mt-0.5 text-xs">
@@ -761,7 +754,7 @@ export default function CreateApl01({ periode, skema, lokasi, kodeAsesi, email, 
                                     onCheckedChange={(checked) => setData('pernyataan', checked === true)}
                                     className="mt-0.5"
                                 />
-                                <Label htmlFor="pernyataan" className="leading-snug font-normal">
+                                <Label htmlFor="pernyataan" required className="leading-snug font-normal">
                                     Saya menyatakan bahwa data dan dokumen yang saya isi adalah benar, dan bersedia mengikuti proses asesmen sesuai
                                     ketentuan LSP.
                                 </Label>

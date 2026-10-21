@@ -33,7 +33,9 @@ export default function ForgotPassword({ role }: { role: UserRole }) {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" required>
+                        Email
+                    </Label>
 
                     <Input
                         id="email"

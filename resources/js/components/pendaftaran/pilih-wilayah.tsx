@@ -150,9 +150,8 @@ export default function PilihWilayah({ value, onChange, errors, akhiran = '', wa
     };
 
     const label = (tingkat: TingkatWilayah) => (
-        <Label htmlFor={tingkat + akhiran}>
+        <Label htmlFor={tingkat + akhiran} required={wajib}>
             {LABEL[tingkat]}
-            {wajib && <span className="text-red-600"> *</span>}
         </Label>
     );
 

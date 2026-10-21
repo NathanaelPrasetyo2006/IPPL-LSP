@@ -86,7 +86,9 @@ export default function Profile({ emailBaru, otp, bisaNonaktif, status }: Profil
                             )}
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Alamat email</Label>
+                                <Label htmlFor="email" required>
+                                    Alamat email
+                                </Label>
 
                                 <Input
                                     id="email"

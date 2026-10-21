@@ -26,7 +26,9 @@ export default function TukForm({ data, setData, setWilayah, errors, processing,
         <form onSubmit={onSubmit} className="bg-card max-w-3xl rounded-xl border shadow-xs">
             <div className="space-y-6 p-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="nama">Nama Lokasi</Label>
+                    <Label htmlFor="nama" required>
+                        Nama Lokasi
+                    </Label>
 
                     <Input
                         id="nama"
@@ -44,7 +46,9 @@ export default function TukForm({ data, setData, setWilayah, errors, processing,
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="alamat">Detail Alamat</Label>
+                    <Label htmlFor="alamat" required>
+                        Detail Alamat
+                    </Label>
 
                     <textarea
                         id="alamat"

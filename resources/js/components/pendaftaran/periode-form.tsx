@@ -113,7 +113,9 @@ export default function PeriodeForm({
         <form onSubmit={onSubmit} className="bg-card max-w-3xl rounded-xl border shadow-xs">
             <div className="space-y-6 p-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="nama">Nama periode</Label>
+                    <Label htmlFor="nama" required>
+                        Nama periode
+                    </Label>
                     <Input
                         id="nama"
                         value={data.nama}
@@ -135,7 +137,9 @@ export default function PeriodeForm({
 
                 <div className="grid gap-6 md:grid-cols-3">
                     <div className="grid gap-2">
-                        <Label htmlFor="tanggal_buka">Tanggal buka</Label>
+                        <Label htmlFor="tanggal_buka" required>
+                            Tanggal buka
+                        </Label>
                         <DateInput
                             id="tanggal_buka"
                             value={data.tanggal_buka}
@@ -147,7 +151,9 @@ export default function PeriodeForm({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="tanggal_tutup">Tanggal tutup</Label>
+                        <Label htmlFor="tanggal_tutup" required>
+                            Tanggal tutup
+                        </Label>
                         <DateInput
                             id="tanggal_tutup"
                             min={data.tanggal_buka || undefined}
@@ -159,7 +165,9 @@ export default function PeriodeForm({
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="kuota">Kuota pendaftar</Label>
+                        <Label htmlFor="kuota" required>
+                            Kuota pendaftar
+                        </Label>
                         <Input
                             id="kuota"
                             type="number"
@@ -191,7 +199,7 @@ export default function PeriodeForm({
                 <div className="grid gap-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <Label>Skema yang dibuka</Label>
+                            <Label required>Skema yang dibuka</Label>
                             <p className="text-muted-foreground mt-1 text-xs">
                                 {data.skema.length} skema dipilih. Calon asesi hanya bisa mendaftar skema ini.
                             </p>
@@ -273,7 +281,7 @@ export default function PeriodeForm({
 
                 <div className="grid gap-3">
                     <div>
-                        <Label>Lokasi TUK</Label>
+                        <Label required>Lokasi TUK</Label>
                         <p className="text-muted-foreground mt-1 text-xs">
                             Pilih lokasi, lalu centang skema yang diujikan di lokasi tersebut. Setiap lokasi wajib memiliki minimal satu skema, dan
                             setiap skema wajib ada di minimal satu lokasi.
@@ -327,7 +335,9 @@ export default function PeriodeForm({
 
                                         <div className="grid gap-4 p-4">
                                             <div className="grid gap-2">
-                                                <Label htmlFor={`lokasi-${index}`}>Nama lokasi</Label>
+                                                <Label htmlFor={`lokasi-${index}`} required>
+                                                    Nama lokasi
+                                                </Label>
                                                 <Select value={lokasi.id_tuk} onValueChange={(value) => ubahLokasi(index, { id_tuk: value })}>
                                                     <SelectTrigger id={`lokasi-${index}`}>
                                                         <SelectValue placeholder="Pilih lokasi TUK" />
@@ -360,7 +370,7 @@ export default function PeriodeForm({
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label>Skema di lokasi ini</Label>
+                                                <Label required>Skema di lokasi ini</Label>
 
                                                 {lokasi.id_tuk ? (
                                                     <div className="grid gap-2 sm:grid-cols-2">

@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, TandaWajib } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useInitials } from '@/hooks/use-initials';
 import AppLayout from '@/layouts/app-layout';
@@ -54,11 +54,6 @@ type TextField = Exclude<keyof BiodataForm, '_method' | 'pas_foto'>;
 
 const textareaClass =
     'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-20 w-full rounded-md border px-3 py-2 text-base focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden md:text-sm';
-
-/** Penanda kolom wajib, sama seperti di formulir APL-01. */
-function Wajib() {
-    return <span className="text-red-600"> *</span>;
-}
 
 /** Penghitung karakter di bawah isian yang dibatasi panjangnya. */
 function SisaKarakter({ value, max }: { value: string; max: number }) {
@@ -211,7 +206,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="bidang_keahlian">
                                     Bidang keahlian
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Input {...teks('bidang_keahlian')} required autoComplete="off" placeholder="Contoh: Teknologi Informasi" />
                                 <SisaKarakter value={data.bidang_keahlian} max={batas.bidang_keahlian} />
@@ -221,7 +216,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="masa_berlaku_sertifikat">
                                     Sertifikat asesor berlaku s.d.
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <DateInput {...field('masa_berlaku_sertifikat')} required />
                                 <p className="text-muted-foreground text-xs">Tanggal akhir masa berlaku sertifikat asesor (MET) dari BNSP.</p>
@@ -259,7 +254,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                                     ) : (
                                         <>
                                             Unggah pas foto
-                                            <Wajib />
+                                            <TandaWajib />
                                         </>
                                     )}
                                 </Label>
@@ -308,7 +303,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="nik">
                                     NIK
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Input
                                     {...field('nik')}
@@ -324,7 +319,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="jenis_kelamin">
                                     Jenis kelamin
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Select value={data.jenis_kelamin} onValueChange={(value) => setData('jenis_kelamin', value)}>
                                     <SelectTrigger id="jenis_kelamin">
@@ -346,7 +341,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="tempat_lahir">
                                     Tempat lahir
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Input {...teks('tempat_lahir')} required autoComplete="off" placeholder="Contoh: Surabaya" />
                                 <SisaKarakter value={data.tempat_lahir} max={batas.tempat_lahir} />
@@ -356,7 +351,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="tgl_lahir">
                                     Tanggal lahir
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <DateInput {...field('tgl_lahir')} required autoComplete="bday" />
                                 <InputError message={errors.tgl_lahir} />
@@ -367,7 +362,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="pendidikan_terakhir">
                                     Pendidikan terakhir
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Select value={data.pendidikan_terakhir} onValueChange={(value) => setData('pendidikan_terakhir', value)}>
                                     <SelectTrigger id="pendidikan_terakhir">
@@ -387,7 +382,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                             <div className="grid gap-2">
                                 <Label htmlFor="no_telp">
                                     No. telepon / WhatsApp
-                                    <Wajib />
+                                    <TandaWajib />
                                 </Label>
                                 <Input {...field('no_telp')} type="tel" required autoComplete="tel" placeholder="Contoh: 081234567890" />
                                 <InputError message={errors.no_telp} />
@@ -399,7 +394,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                         <div className="grid gap-2">
                             <Label htmlFor="alamat">
                                 Detail alamat
-                                <Wajib />
+                                <TandaWajib />
                             </Label>
                             <textarea {...teks('alamat')} required rows={2} className={textareaClass} placeholder="Nama jalan, nomor rumah, RT/RW" />
                             <SisaKarakter value={data.alamat} max={batas.alamat} />

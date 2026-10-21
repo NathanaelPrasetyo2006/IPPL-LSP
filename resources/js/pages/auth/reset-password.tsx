@@ -45,7 +45,9 @@ export default function ResetPassword({ role, email }: ResetPasswordProps) {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Password baru</Label>
+                    <Label htmlFor="password" required>
+                        Password baru
+                    </Label>
                     <PasswordInput
                         id="password"
                         required
@@ -59,7 +61,9 @@ export default function ResetPassword({ role, email }: ResetPasswordProps) {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="password_confirmation">Ulangi password baru</Label>
+                    <Label htmlFor="password_confirmation" required>
+                        Ulangi password baru
+                    </Label>
                     <PasswordInput
                         id="password_confirmation"
                         required

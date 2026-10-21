@@ -68,7 +68,9 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
                     </DialogHeader>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="unit-kode">Kode unit</Label>
+                        <Label htmlFor="unit-kode" required>
+                            Kode unit
+                        </Label>
                         <Input
                             id="unit-kode"
                             value={data.kode}
@@ -84,7 +86,9 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="unit-judul">Judul unit kompetensi</Label>
+                        <Label htmlFor="unit-judul" required>
+                            Judul unit kompetensi
+                        </Label>
                         <Input
                             id="unit-judul"
                             value={data.judul}

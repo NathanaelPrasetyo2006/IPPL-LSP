@@ -61,7 +61,9 @@ export default function FirstPassword({ email, nama }: FirstPasswordProps) {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="current_password">Password sementara</Label>
+                    <Label htmlFor="current_password" required>
+                        Password sementara
+                    </Label>
 
                     <PasswordInput
                         id="current_password"
@@ -77,7 +79,9 @@ export default function FirstPassword({ email, nama }: FirstPasswordProps) {
                 </div>
 
                 <div className="grid gap-2 border-t pt-5">
-                    <Label htmlFor="password">Password baru</Label>
+                    <Label htmlFor="password" required>
+                        Password baru
+                    </Label>
 
                     <PasswordInput
                         id="password"
@@ -92,7 +96,9 @@ export default function FirstPassword({ email, nama }: FirstPasswordProps) {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="password_confirmation">Ulangi password baru</Label>
+                    <Label htmlFor="password_confirmation" required>
+                        Ulangi password baru
+                    </Label>
 
                     <PasswordInput
                         id="password_confirmation"

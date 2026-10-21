@@ -53,7 +53,9 @@ export default function Register() {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="nama_lengkap">Nama lengkap</Label>
+                    <Label htmlFor="nama_lengkap" required>
+                        Nama lengkap
+                    </Label>
 
                     <Input
                         id="nama_lengkap"
@@ -74,7 +76,9 @@ export default function Register() {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="no_telp">No. HP / WhatsApp</Label>
+                    <Label htmlFor="no_telp" required>
+                        No. HP / WhatsApp
+                    </Label>
 
                     <Input
                         id="no_telp"
@@ -91,7 +95,9 @@ export default function Register() {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" required>
+                        Email
+                    </Label>
 
                     <Input
                         id="email"
@@ -112,7 +118,9 @@ export default function Register() {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" required>
+                        Password
+                    </Label>
 
                     <PasswordInput
                         id="password"
@@ -128,7 +136,9 @@ export default function Register() {
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="password_confirmation">Ulangi password</Label>
+                    <Label htmlFor="password_confirmation" required>
+                        Ulangi password
+                    </Label>
 
                     <PasswordInput
                         id="password_confirmation"
@@ -157,7 +167,7 @@ export default function Register() {
                             disabled={processing}
                             className="mt-0.5"
                         />
-                        <Label htmlFor="persetujuan" className="text-sm leading-snug font-normal">
+                        <Label htmlFor="persetujuan" required className="text-sm leading-snug font-normal">
                             Saya menyetujui data pribadi saya digunakan oleh LSP untuk keperluan proses sertifikasi kompetensi.
                         </Label>
                     </div>

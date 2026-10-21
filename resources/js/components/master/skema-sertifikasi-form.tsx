@@ -24,7 +24,9 @@ export default function SkemaSertifikasiForm({ data, setData, errors, processing
         <form onSubmit={onSubmit} className="bg-card max-w-2xl rounded-xl border shadow-xs">
             <div className="space-y-6 p-6">
                 <div className="grid gap-2">
-                    <Label htmlFor="nomor">Kode skema</Label>
+                    <Label htmlFor="nomor" required>
+                        Kode skema
+                    </Label>
 
                     <Input
                         id="nomor"
@@ -45,7 +47,9 @@ export default function SkemaSertifikasiForm({ data, setData, errors, processing
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="judul">Nama skema sertifikasi</Label>
+                    <Label htmlFor="judul" required>
+                        Nama skema sertifikasi
+                    </Label>
 
                     <Input
                         id="judul"

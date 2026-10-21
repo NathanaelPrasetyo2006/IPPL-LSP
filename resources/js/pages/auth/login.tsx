@@ -75,7 +75,9 @@ export default function Login({ role, status }: LoginProps) {
 
             <form className="flex flex-col gap-5" onSubmit={submit}>
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" required>
+                        Email
+                    </Label>
 
                     <Input
                         id="email"
@@ -94,7 +96,9 @@ export default function Login({ role, status }: LoginProps) {
 
                 <div className="grid gap-2">
                     <div className="flex items-center">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password" required>
+                            Password
+                        </Label>
 
                         <TextLink href={route('password.request', role)} className="ml-auto text-sm" tabIndex={5}>
                             Lupa password?

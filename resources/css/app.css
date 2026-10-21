@@ -156,3 +156,12 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Bingkai isian memerah bila di bawahnya ada pesan error (components/input-error.tsx).
+ * Sengaja di luar @layer supaya mengalahkan utility border-input milik komponen.
+ */
+:is(input, textarea, select, button[role='combobox']):not([type='checkbox'], [type='radio'], [type='hidden']):has(~ [data-input-error]),
+:has(~ [data-input-error]) > :is(input, textarea, select, button[role='combobox']):not([type='checkbox'], [type='radio'], [type='hidden']) {
+    border-color: var(--color-red-500);
+}

@@ -204,7 +204,7 @@ export default function VerifikasiShow({ permohonan }: { permohonan: PermohonanD
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label>Keputusan</Label>
+                                        <Label required>Keputusan</Label>
                                         <div className="grid grid-cols-2 gap-2">
                                             {(['diterima', 'ditolak'] as const).map((value) => (
                                                 <button
@@ -236,9 +236,8 @@ export default function VerifikasiShow({ permohonan }: { permohonan: PermohonanD
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="catatan">
+                                        <Label htmlFor="catatan" required={data.keputusan === 'ditolak'}>
                                             Catatan untuk asesi
-                                            {data.keputusan === 'ditolak' && <span className="text-red-600"> *</span>}
                                         </Label>
                                         <textarea
                                             id="catatan"

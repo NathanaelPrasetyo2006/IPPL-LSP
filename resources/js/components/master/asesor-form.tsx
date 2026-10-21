@@ -29,7 +29,9 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
             <div className="space-y-6 p-6">
                 <div className="grid gap-6 md:grid-cols-2">
                     <div className="grid gap-2">
-                        <Label htmlFor="nama">Nama asesor</Label>
+                        <Label htmlFor="nama" required>
+                            Nama asesor
+                        </Label>
 
                         <Input
                             id="nama"
@@ -45,7 +47,9 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="no_reg">No. Registrasi / MET</Label>
+                        <Label htmlFor="no_reg" required>
+                            No. Registrasi / MET
+                        </Label>
 
                         <Input
                             id="no_reg"
@@ -66,7 +70,9 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" required>
+                        Email
+                    </Label>
 
                     <Input
                         id="email"
