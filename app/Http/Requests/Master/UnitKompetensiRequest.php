@@ -29,6 +29,7 @@ class UnitKompetensiRequest extends FormRequest
                 'required',
                 'string',
                 'max:100',
+                'not_regex:/\s/u',
                 Rule::unique('unit_kompetensi', 'kode')
                     ->where('id_skema', $unit?->id_skema ?? $skema?->id_skema)
                     ->whereNull('deleted_at')
@@ -59,6 +60,7 @@ class UnitKompetensiRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'kode.not_regex' => 'Kode unit tidak boleh mengandung spasi.',
             'kode.unique' => 'Kode unit :input sudah ada di skema ini.',
         ];
     }
@@ -69,7 +71,8 @@ class UnitKompetensiRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'kode' => is_string($this->kode) ? trim($this->kode) : $this->kode,
+            // Huruf besar semua (seperti No. MET) supaya keunikan kode tidak lolos hanya karena beda kapitalisasi.
+            'kode' => is_string($this->kode) ? mb_strtoupper(trim($this->kode)) : $this->kode,
             'judul' => is_string($this->judul) ? trim($this->judul) : $this->judul,
         ]);
     }

@@ -125,3 +125,38 @@ test('deleting a skema is a soft delete and frees its code for reuse', function 
     expect(SkemaSertifikasi::where('nomor', 'SKM/001')->count())->toBe(1)
         ->and(SkemaSertifikasi::withTrashed()->where('nomor', 'SKM/001')->count())->toBe(2);
 });
+
+test('skema and unit codes may not contain spaces', function () {
+    $skema = SkemaSertifikasi::factory()->create();
+
+    $this->actingAs($this->admin)
+        ->post('/master/skema-sertifikasi', ['nomor' => 'SKM 002', 'judul' => 'Skema berspasi'])
+        ->assertSessionHasErrors(['nomor' => 'Kode skema tidak boleh mengandung spasi.']);
+
+    $this->actingAs($this->admin)
+        ->post("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi", ['kode' => 'J.620100 .001.01', 'judul' => 'Unit berspasi'])
+        ->assertSessionHasErrors(['kode' => 'Kode unit tidak boleh mengandung spasi.']);
+});
+
+test('skema and unit codes are stored in capitals so letter case can not bypass uniqueness', function () {
+    $this->actingAs($this->admin)
+        ->post('/master/skema-sertifikasi', ['nomor' => ' ss-kkni-001 ', 'judul' => 'Skema huruf kecil'])
+        ->assertSessionHasNoErrors();
+
+    $skema = SkemaSertifikasi::sole();
+    expect($skema->nomor)->toBe('SS-KKNI-001');
+
+    $this->actingAs($this->admin)
+        ->post('/master/skema-sertifikasi', ['nomor' => 'Ss-Kkni-001', 'judul' => 'Duplikat'])
+        ->assertSessionHasErrors('nomor');
+
+    $this->actingAs($this->admin)
+        ->post("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi", ['kode' => 'j.620100.001.01', 'judul' => 'Unit'])
+        ->assertSessionHasNoErrors();
+
+    expect($skema->unitKompetensi()->sole()->kode)->toBe('J.620100.001.01');
+
+    $this->actingAs($this->admin)
+        ->post("/master/skema-sertifikasi/{$skema->ulid}/unit-kompetensi", ['kode' => 'J.620100.001.01', 'judul' => 'Duplikat'])
+        ->assertSessionHasErrors('kode');
+});

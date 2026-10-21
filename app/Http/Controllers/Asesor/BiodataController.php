@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -50,6 +51,7 @@ class BiodataController extends Controller
             'options' => [
                 'jenis_kelamin' => Asesor::JENIS_KELAMIN,
                 'pendidikan' => Asesor::PENDIDIKAN,
+                'batas_karakter' => BiodataRequest::BATAS_KARAKTER,
             ],
         ]);
     }
@@ -65,7 +67,8 @@ class BiodataController extends Controller
 
         if ($request->hasFile('pas_foto')) {
             $fotoLama = $asesor->file_pas_foto;
-            $data['file_pas_foto'] = $request->file('pas_foto')->store('asesor/pas-foto', self::DISK);
+            $foto = $request->file('pas_foto');
+            $data['file_pas_foto'] = $foto->storeAs('asesor/pas-foto', $this->namaPasFoto($asesor, $foto->extension()), self::DISK);
         }
 
         $asesor->update([...$data, 'biodata_diperbarui_pada' => now()]);
@@ -117,6 +120,19 @@ class BiodataController extends Controller
                 fn (string $kolom) => blank($asesor->{$kolom}),
             )),
         ]);
+    }
+
+    /**
+     * Nama file pas foto: "<kode asesor>_<kode unik>", mis. "ASR-2026-00001_7K2QX9AB.jpg".
+     * Kode unik 8 karakter campuran huruf kapital dan angka, dibuat ulang setiap foto diganti.
+     */
+    private function namaPasFoto(Asesor $asesor, string $ekstensi): string
+    {
+        do {
+            $kode = Str::upper(Str::random(8));
+        } while (! preg_match('/[A-Z]/', $kode) || ! preg_match('/\d/', $kode));
+
+        return ($asesor->kode_asesor ?? 'ASESOR')."_{$kode}.{$ekstensi}";
     }
 
     /**

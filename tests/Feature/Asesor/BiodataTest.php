@@ -160,3 +160,32 @@ test('card marks an expired asesor certificate', function () {
         ->get('/asesor/kartu')
         ->assertInertia(fn ($page) => $page->where('asesor.kedaluwarsa', true));
 });
+
+test('free text biodata fields are limited by character count', function () {
+    $this->actingAs($this->user)
+        ->put('/asesor/biodata', biodataValid([
+            'tempat_lahir' => str_repeat('a', 51),
+            'bidang_keahlian' => str_repeat('a', 51),
+            'instansi' => str_repeat('a', 101),
+            'alamat' => str_repeat('a', 201),
+        ]))
+        ->assertSessionHasErrors(['tempat_lahir', 'bidang_keahlian', 'instansi', 'alamat']);
+
+    $this->actingAs($this->user)
+        ->put('/asesor/biodata', biodataValid([
+            'tempat_lahir' => str_repeat('a', 50),
+            'bidang_keahlian' => str_repeat('a', 50),
+            'instansi' => str_repeat('a', 100),
+            'alamat' => str_repeat('a', 200),
+        ]))
+        ->assertSessionHasNoErrors();
+});
+
+test('pas foto is named after the kode asesor plus an 8 character unique code', function () {
+    $this->actingAs($this->user)->put('/asesor/biodata', biodataValid())->assertSessionHasNoErrors();
+
+    $asesor = $this->asesor->fresh();
+    $kode = preg_quote($asesor->kode_asesor, '/');
+
+    expect(basename($asesor->file_pas_foto))->toMatch("/^{$kode}_(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{8}\.png$/");
+});

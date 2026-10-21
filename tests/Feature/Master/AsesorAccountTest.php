@@ -180,3 +180,11 @@ test('no. MET must be unique regardless of letter case', function () {
 
     expect(Asesor::count())->toBe(1);
 });
+
+test('no. MET may not contain spaces', function () {
+    $this->actingAs($this->admin)
+        ->post('/master/asesor', ['nama' => 'Budi', 'no_reg' => 'MET.001 .2026', 'email' => 'budi@example.com'])
+        ->assertSessionHasErrors(['no_reg' => 'No. registrasi/MET tidak boleh mengandung spasi.']);
+
+    expect(Asesor::count())->toBe(0);
+});

@@ -10,6 +10,19 @@ use Illuminate\Validation\Rule;
 class BiodataRequest extends FormRequest
 {
     /**
+     * Batas jumlah karakter isian teks bebas. Dihitung per karakter (bukan per kata)
+     * supaya pasti muat di kolom database dan di Kartu Tanda Asesor.
+     *
+     * @var array<string, int>
+     */
+    public const BATAS_KARAKTER = [
+        'tempat_lahir' => 50,
+        'bidang_keahlian' => 50,
+        'instansi' => 100,
+        'alamat' => 200,
+    ];
+
+    /**
      * Nama dan no. registrasi tidak ada di sini: keduanya mengikuti sertifikat
      * dan hanya boleh diubah admin LSP.
      *
@@ -26,18 +39,18 @@ class BiodataRequest extends FormRequest
                 'digits:16',
                 Rule::unique('asesor', 'nik')->ignore($asesor?->id_asesor, 'id_asesor'),
             ],
-            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tempat_lahir' => ['required', 'string', 'max:'.self::BATAS_KARAKTER['tempat_lahir']],
             'tgl_lahir' => ['required', 'date', 'before:-17 years'],
             'jenis_kelamin' => ['required', Rule::in(array_keys(Asesor::JENIS_KELAMIN))],
             'no_telp' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
-            'alamat' => ['required', 'string', 'max:500'],
+            'alamat' => ['required', 'string', 'max:'.self::BATAS_KARAKTER['alamat']],
             'provinsi' => ['required', 'string', 'max:100'],
             'kota' => ['required', 'string', 'max:100'],
             'kecamatan' => ['required', 'string', 'max:100'],
             'kelurahan' => ['required', 'string', 'max:100'],
             'pendidikan_terakhir' => ['required', Rule::in(array_keys(Asesor::PENDIDIKAN))],
-            'instansi' => ['nullable', 'string', 'max:255'],
-            'bidang_keahlian' => ['required', 'string', 'max:255'],
+            'instansi' => ['nullable', 'string', 'max:'.self::BATAS_KARAKTER['instansi']],
+            'bidang_keahlian' => ['required', 'string', 'max:'.self::BATAS_KARAKTER['bidang_keahlian']],
             'masa_berlaku_sertifikat' => ['required', 'date'],
             // Pas foto wajib saat pertama kali; setelahnya boleh dikosongkan untuk memakai foto lama.
             'pas_foto' => [

@@ -72,7 +72,8 @@ export default function UnitKompetensiDialog({ open, onOpenChange, skema, unit }
                         <Input
                             id="unit-kode"
                             value={data.kode}
-                            onChange={(e) => setData('kode', e.target.value)}
+                            // Kode tanpa spasi dan berhuruf besar: spasi dibuang dan huruf diubah kapital saat diketik/ditempel.
+                            onChange={(e) => setData('kode', e.target.value.replace(/\s/g, '').toUpperCase())}
                             required
                             autoFocus
                             autoComplete="off"

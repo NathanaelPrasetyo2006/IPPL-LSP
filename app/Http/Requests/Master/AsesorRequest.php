@@ -26,6 +26,7 @@ class AsesorRequest extends FormRequest
                 'required',
                 'string',
                 'max:100',
+                'not_regex:/\s/u',
                 Rule::unique('asesor', 'no_reg')->ignore($asesor?->id_asesor, 'id_asesor'),
             ],
             'email' => [
@@ -61,6 +62,7 @@ class AsesorRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'no_reg.not_regex' => 'No. registrasi/MET tidak boleh mengandung spasi.',
             'no_reg.unique' => 'No. registrasi :input sudah dipakai asesor lain.',
             'email.unique' => 'Email :input sudah terdaftar sebagai akun lain.',
         ];

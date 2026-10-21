@@ -29,14 +29,17 @@ export default function SkemaSertifikasiForm({ data, setData, errors, processing
                     <Input
                         id="nomor"
                         value={data.nomor}
-                        onChange={(e) => setData('nomor', e.target.value)}
+                        // Kode tanpa spasi dan berhuruf besar: spasi dibuang dan huruf diubah kapital saat diketik/ditempel.
+                        onChange={(e) => setData('nomor', e.target.value.replace(/\s/g, '').toUpperCase())}
                         required
                         autoFocus
                         autoComplete="off"
                         placeholder="Contoh: SS-KKNI-001"
                     />
 
-                    <p className="text-muted-foreground text-xs">Kode harus unik, dipakai sebagai identitas resmi skema.</p>
+                    <p className="text-muted-foreground text-xs">
+                        Kode harus unik, tanpa spasi, otomatis huruf besar, dipakai sebagai identitas resmi skema.
+                    </p>
 
                     <InputError message={errors.nomor} />
                 </div>

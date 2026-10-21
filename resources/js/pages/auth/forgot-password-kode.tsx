@@ -10,7 +10,7 @@ import { type OtpStatus, type UserRole } from '@/types';
 
 interface ForgotPasswordKodeProps {
     role: UserRole;
-    /** Email tujuan dalam bentuk tersamar, mis. bu*****@gmail.com. */
+    /** Email tujuan dalam bentuk tersamar, mis. bu*******so@gmail.com. */
     email: string;
     otp: OtpStatus;
 }

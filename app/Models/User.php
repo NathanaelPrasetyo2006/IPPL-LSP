@@ -88,6 +88,21 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Nama yang ditampilkan di menu profil. Tabel users tidak menyimpan nama, jadi diambil
+     * dari data asesor/asesi; akun admin memakai label perannya.
+     */
+    public function namaTampilan(): string
+    {
+        $nama = match ($this->role) {
+            UserRole::Asesor => $this->asesor()->value('nama'),
+            UserRole::Asesi => $this->dataDiri()->value('nama_lengkap'),
+            default => null,
+        };
+
+        return $nama ?: $this->role?->label() ?? $this->email;
+    }
+
+    /**
      * Verifikasi email memakai kode OTP, termasuk saat dipicu event Registered bawaan Laravel.
      */
     public function sendEmailVerificationNotification(): void

@@ -141,6 +141,8 @@ export interface AsesorBiodata {
 export interface AsesorBiodataOptions {
     jenis_kelamin: Record<string, string>;
     pendidikan: Record<string, string>;
+    /** Batas karakter isian teks bebas, sama dengan validasi di server. */
+    batas_karakter: Record<'tempat_lahir' | 'bidang_keahlian' | 'instansi' | 'alamat', number>;
 }
 
 /** Data yang dicetak pada Kartu Tanda Asesor. */

@@ -5,7 +5,7 @@ import { type User } from '@/types';
 export function UserInfo({ user, showEmail = false }: { user: User; showEmail?: boolean }) {
     const getInitials = useInitials();
 
-    // Tabel users tidak menyimpan nama, jadi email dipakai sebagai label cadangan.
+    // Nama diisi server dari data asesor/asesi (admin: "Admin LSP"); email hanya label cadangan.
     const displayName = user.name || user.email;
 
     return (

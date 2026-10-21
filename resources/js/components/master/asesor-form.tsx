@@ -50,13 +50,16 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
                         <Input
                             id="no_reg"
                             value={data.no_reg}
-                            onChange={(e) => setData('no_reg', e.target.value)}
+                            // Kode tanpa spasi dan berhuruf besar: spasi dibuang dan huruf diubah kapital saat diketik/ditempel.
+                            onChange={(e) => setData('no_reg', e.target.value.replace(/\s/g, '').toUpperCase())}
                             required
                             autoComplete="off"
                             placeholder="Contoh: MET.000.001.2026"
                         />
 
-                        <p className="text-muted-foreground text-xs">Nomor registrasi asesor dari BNSP, harus unik.</p>
+                        <p className="text-muted-foreground text-xs">
+                            Nomor registrasi asesor dari BNSP, harus unik, tanpa spasi, otomatis huruf besar.
+                        </p>
 
                         <InputError message={errors.no_reg} />
                     </div>

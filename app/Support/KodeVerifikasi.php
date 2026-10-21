@@ -131,13 +131,20 @@ class KodeVerifikasi
     }
 
     /**
-     * Tampilkan email tanpa membuka seluruh alamatnya, mis. "bu*****@gmail.com".
+     * Tampilkan email tanpa membuka seluruh alamatnya: 2 huruf depan dan 2 huruf belakang
+     * nama email tetap terlihat, mis. "budisantoso@gmail.com" menjadi "bu*******so@gmail.com".
      */
     public static function samarkan(string $email): string
     {
         [$nama, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        $panjang = mb_strlen($nama);
 
-        return mb_substr($nama, 0, 2).str_repeat('*', max(3, mb_strlen($nama) - 2)).'@'.$domain;
+        // Nama sependek ini akan terbuka seluruhnya bila 2+2 huruf ditampilkan, jadi cukup huruf pertamanya.
+        if ($panjang <= 4) {
+            return mb_substr($nama, 0, 1).str_repeat('*', 3).'@'.$domain;
+        }
+
+        return mb_substr($nama, 0, 2).str_repeat('*', $panjang - 4).mb_substr($nama, -2).'@'.$domain;
     }
 
     private static function jumlahKirimHariIni(KodeOtp $otp): int

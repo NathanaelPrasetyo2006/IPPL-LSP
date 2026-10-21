@@ -60,6 +60,15 @@ function Wajib() {
     return <span className="text-red-600"> *</span>;
 }
 
+/** Penghitung karakter di bawah isian yang dibatasi panjangnya. */
+function SisaKarakter({ value, max }: { value: string; max: number }) {
+    return (
+        <p className={cn('text-right text-xs', value.length >= max ? 'text-amber-600' : 'text-muted-foreground')}>
+            {value.length}/{max} karakter
+        </p>
+    );
+}
+
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
     return (
         <section className="grid gap-6 border-b p-6 last:border-b-0 lg:grid-cols-[220px_1fr]">
@@ -124,6 +133,10 @@ export default function Biodata({ asesor, options }: BiodataProps) {
         value: data[key],
         onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setData(key, e.target.value),
     });
+
+    // Isian teks bebas dibatasi panjangnya; browser berhenti menerima ketikan setelah batas tercapai.
+    const batas = options.batas_karakter;
+    const teks = (key: keyof typeof batas) => ({ ...field(key), maxLength: batas[key] });
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -200,7 +213,8 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                                     Bidang keahlian
                                     <Wajib />
                                 </Label>
-                                <Input {...field('bidang_keahlian')} required autoComplete="off" placeholder="Contoh: Teknologi Informasi" />
+                                <Input {...teks('bidang_keahlian')} required autoComplete="off" placeholder="Contoh: Teknologi Informasi" />
+                                <SisaKarakter value={data.bidang_keahlian} max={batas.bidang_keahlian} />
                                 <InputError message={errors.bidang_keahlian} />
                             </div>
 
@@ -217,7 +231,8 @@ export default function Biodata({ asesor, options }: BiodataProps) {
 
                         <div className="grid gap-2">
                             <Label htmlFor="instansi">Asal instansi / perusahaan</Label>
-                            <Input {...field('instansi')} autoComplete="organization" placeholder="Opsional" />
+                            <Input {...teks('instansi')} autoComplete="organization" placeholder="Opsional" />
+                            <SisaKarakter value={data.instansi} max={batas.instansi} />
                             <InputError message={errors.instansi} />
                         </div>
                     </Section>
@@ -226,7 +241,7 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                             <div
                                 className={cn(
-                                    'bg-muted flex aspect-[3/4] w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border',
+                                    'bg-muted flex aspect-3/4 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border',
                                     errors.pas_foto && 'border-destructive',
                                 )}
                             >
@@ -333,7 +348,8 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                                     Tempat lahir
                                     <Wajib />
                                 </Label>
-                                <Input {...field('tempat_lahir')} required autoComplete="off" placeholder="Contoh: Surabaya" />
+                                <Input {...teks('tempat_lahir')} required autoComplete="off" placeholder="Contoh: Surabaya" />
+                                <SisaKarakter value={data.tempat_lahir} max={batas.tempat_lahir} />
                                 <InputError message={errors.tempat_lahir} />
                             </div>
 
@@ -385,7 +401,8 @@ export default function Biodata({ asesor, options }: BiodataProps) {
                                 Detail alamat
                                 <Wajib />
                             </Label>
-                            <textarea {...field('alamat')} required rows={2} className={textareaClass} placeholder="Nama jalan, nomor rumah, RT/RW" />
+                            <textarea {...teks('alamat')} required rows={2} className={textareaClass} placeholder="Nama jalan, nomor rumah, RT/RW" />
+                            <SisaKarakter value={data.alamat} max={batas.alamat} />
                             <InputError message={errors.alamat} />
                         </div>
 

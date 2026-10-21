@@ -25,6 +25,7 @@ class SkemaSertifikasiRequest extends FormRequest
                 'required',
                 'string',
                 'max:100',
+                'not_regex:/\s/u',
                 // Kode milik skema yang sudah dihapus boleh dipakai lagi.
                 Rule::unique('skema_sertifikasi', 'nomor')->whereNull('deleted_at')->ignore($skema?->id_skema, 'id_skema'),
             ],
@@ -52,6 +53,7 @@ class SkemaSertifikasiRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'nomor.not_regex' => 'Kode skema tidak boleh mengandung spasi.',
             'nomor.unique' => 'Kode skema :input sudah terdaftar.',
         ];
     }
@@ -63,7 +65,8 @@ class SkemaSertifikasiRequest extends FormRequest
     {
         $this->merge([
             'judul' => is_string($this->judul) ? trim($this->judul) : $this->judul,
-            'nomor' => is_string($this->nomor) ? trim($this->nomor) : $this->nomor,
+            // Huruf besar semua (seperti No. MET) supaya keunikan kode tidak lolos hanya karena beda kapitalisasi.
+            'nomor' => is_string($this->nomor) ? mb_strtoupper(trim($this->nomor)) : $this->nomor,
         ]);
     }
 }

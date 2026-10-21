@@ -7,7 +7,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import { type OtpStatus } from '@/types';
 
 interface VerifikasiEmailProps {
-    /** Email tujuan dalam bentuk tersamar, mis. bu*****@gmail.com. */
+    /** Email tujuan dalam bentuk tersamar, mis. bu*******so@gmail.com. */
     email: string;
     otp: OtpStatus;
 }
