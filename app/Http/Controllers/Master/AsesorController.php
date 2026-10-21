@@ -73,7 +73,7 @@ class AsesorController extends Controller
     }
 
     /**
-     * Simpan akun asesor baru lalu kirim link verifikasi ke email-nya.
+     * Simpan akun asesor baru lalu kirim email berisi password sementara & link verifikasi.
      */
     public function store(AsesorRequest $request): RedirectResponse
     {
@@ -82,8 +82,7 @@ class AsesorController extends Controller
         $user = DB::transaction(function () use ($data) {
             $user = User::create([
                 'email' => $data['email'],
-                // Password acak yang tidak diketahui siapa pun; akun belum bisa dipakai login
-                // sampai asesor memverifikasi email dan menerima password sementara.
+                // Diganti password sementara saat email dikirim; akun belum bisa login sampai diverifikasi.
                 'password' => Str::password(32),
                 'role' => UserRole::Asesor,
                 'must_change_password' => true,
@@ -98,10 +97,10 @@ class AsesorController extends Controller
             return $user;
         });
 
-        $user->notify(new AsesorVerifikasiAkun($data['nama']));
+        $this->kirimAktivasi($user, $data['nama']);
 
         return to_route('master.asesor.index')
-            ->with('success', "Akun asesor {$data['nama']} berhasil dibuat. Link verifikasi sudah dikirim ke {$data['email']}.");
+            ->with('success', "Akun asesor {$data['nama']} berhasil dibuat. Password sementara & link verifikasi sudah dikirim ke {$data['email']}.");
     }
 
     /**
@@ -131,7 +130,7 @@ class AsesorController extends Controller
         $data = $request->validated();
         $user = $asesor->user;
 
-        // Bila email akun yang belum aktif dikoreksi, link verifikasi dikirim ulang ke email baru.
+        // Bila email akun yang belum aktif dikoreksi, password sementara & link verifikasi dikirim ulang ke email baru.
         $kirimUlang = $user && ! $user->isVerified() && $user->email !== $data['email'];
 
         DB::transaction(function () use ($data, $asesor, $user) {
@@ -144,7 +143,7 @@ class AsesorController extends Controller
         });
 
         if ($kirimUlang) {
-            $user->notify(new AsesorVerifikasiAkun($data['nama']));
+            $this->kirimAktivasi($user, $data['nama']);
         }
 
         return to_route('master.asesor.index')
@@ -164,9 +163,25 @@ class AsesorController extends Controller
             return back()->with('error', 'Akun asesor ini sudah terverifikasi.');
         }
 
-        $user->notify(new AsesorVerifikasiAkun($asesor->nama));
+        $this->kirimAktivasi($user, $asesor->nama);
 
-        return back()->with('success', "Link verifikasi dikirim ulang ke {$user->email}.");
+        return back()->with('success', "Password sementara & link verifikasi dikirim ulang ke {$user->email}.");
+    }
+
+    /**
+     * Buat password sementara baru lalu kirim bersama link verifikasi dalam satu email.
+     * Password lama tidak tersimpan dalam bentuk asli, jadi setiap pengiriman membuat yang baru.
+     */
+    private function kirimAktivasi(User $user, string $nama): void
+    {
+        $password = Str::password(12, symbols: false);
+
+        $user->forceFill([
+            'password' => $password,
+            'must_change_password' => true,
+        ])->save();
+
+        $user->notify(new AsesorVerifikasiAkun($nama, $password));
     }
 
     /**

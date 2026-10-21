@@ -65,7 +65,7 @@ export default function EditAsesor({ asesor }: EditAsesorProps) {
                     notice={
                         asesor.terverifikasi
                             ? 'Akun ini sudah aktif. Bila asesor lupa password, arahkan untuk memakai menu "Lupa password" di halaman masuk asesor.'
-                            : 'Akun ini belum diverifikasi. Bila email diubah, link verifikasi baru otomatis dikirim ke email tersebut.'
+                            : 'Akun ini belum diverifikasi. Bila email diubah, password sementara & link verifikasi baru otomatis dikirim ke email tersebut.'
                     }
                 />
             </div>

@@ -5,16 +5,15 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Notifications\AsesorPasswordSementara;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AsesorVerificationController extends Controller
 {
     /**
-     * Aktifkan akun asesor dari link verifikasi di email, lalu kirim password sementaranya.
+     * Aktifkan akun asesor dari link verifikasi di email. Password sementara sudah
+     * dikirim di email yang sama, jadi asesor bisa langsung login setelahnya.
      */
     public function __invoke(Request $request, User $user, string $hash): Response
     {
@@ -27,20 +26,11 @@ class AsesorVerificationController extends Controller
             return $this->render('invalid', $user);
         }
 
-        // Link yang diklik ulang tidak boleh menimpa password yang sudah dikirim.
         if ($user->isVerified()) {
             return $this->render('already', $user);
         }
 
-        $password = Str::password(12, symbols: false);
-
-        $user->forceFill([
-            'password' => $password,
-            'must_change_password' => true,
-            'email_verified_at' => now(),
-        ])->save();
-
-        $user->notify(new AsesorPasswordSementara($user->asesor?->nama ?? $user->email, $password));
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         return $this->render('activated', $user);
     }

@@ -76,7 +76,7 @@ export default function AsesorForm({ data, setData, errors, processing, onSubmit
                     />
 
                     <p className="text-muted-foreground text-xs">
-                        Dipakai asesor untuk login. Pastikan email aktif karena link verifikasi dikirim ke sini.
+                        Dipakai asesor untuk login. Pastikan email aktif karena password sementara & link verifikasi dikirim ke sini.
                     </p>
 
                     <InputError message={errors.email} />

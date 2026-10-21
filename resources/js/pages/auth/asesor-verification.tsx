@@ -44,19 +44,21 @@ export default function AsesorVerification({ status, email }: AsesorVerification
 
                 {status === 'activated' && (
                     <p>
-                        Password sementara telah dikirim ke <span className="font-semibold">{email}</span>. Periksa kotak masuk atau folder spam, lalu
-                        masuk dan ganti password tersebut.
+                        Akun <span className="font-semibold">{email}</span> sudah aktif. Silakan masuk memakai password sementara yang tercantum di
+                        email yang sama, lalu ganti password tersebut.
                     </p>
                 )}
 
                 {status === 'already' && (
                     <p>
-                        Akun <span className="font-semibold">{email}</span> sudah aktif. Gunakan password sementara dari email sebelumnya, atau pakai
+                        Akun <span className="font-semibold">{email}</span> sudah aktif. Gunakan password sementara dari email verifikasi, atau pakai
                         menu &ldquo;Lupa password&rdquo; bila tidak menemukannya.
                     </p>
                 )}
 
-                {status === 'invalid' && <p>Link verifikasi berlaku 24 jam. Hubungi admin LSP untuk meminta link verifikasi yang baru.</p>}
+                {status === 'invalid' && (
+                    <p>Link verifikasi berlaku 24 jam. Hubungi admin LSP untuk meminta link verifikasi dan password sementara yang baru.</p>
+                )}
             </div>
 
             <Button asChild className="mt-6 w-full">

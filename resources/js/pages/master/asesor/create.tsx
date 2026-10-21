@@ -48,13 +48,13 @@ export default function CreateAsesor() {
                     errors={errors}
                     processing={processing}
                     onSubmit={submit}
-                    submitLabel="Buat akun & kirim verifikasi"
+                    submitLabel="Buat akun & kirim email"
                     notice={
                         <>
                             <p className="font-medium">Bagaimana akun ini diaktifkan?</p>
                             <ol className="mt-1 list-decimal space-y-0.5 pl-4">
-                                <li>Sistem mengirim link verifikasi ke email asesor.</li>
-                                <li>Setelah link diklik, akun aktif dan password sementara dikirim otomatis ke email yang sama.</li>
+                                <li>Sistem mengirim satu email berisi email login, password sementara, dan link verifikasi.</li>
+                                <li>Setelah link diklik, akun aktif dan asesor bisa langsung login.</li>
                                 <li>Asesor wajib mengganti password sementara saat login pertama.</li>
                             </ol>
                         </>

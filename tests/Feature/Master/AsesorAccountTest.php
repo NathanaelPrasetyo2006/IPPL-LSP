@@ -3,8 +3,8 @@
 use App\Enums\UserRole;
 use App\Models\Asesor;
 use App\Models\User;
-use App\Notifications\AsesorPasswordSementara;
 use App\Notifications\AsesorVerifikasiAkun;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -18,7 +18,24 @@ function asesorBelumVerifikasi(array $user = []): Asesor
     return Asesor::factory()->create(['id_user' => User::factory()->asesor()->unverified()->create($user)]);
 }
 
-test('creating an asesor sends a verification link instead of a password', function () {
+/**
+ * Ambil password sementara yang tercantum di email aktivasi terakhir untuk user ini.
+ */
+function passwordDariEmail(User $user): ?string
+{
+    $password = null;
+
+    Notification::assertSentTo($user, AsesorVerifikasiAkun::class, function ($notification) use ($user, &$password) {
+        preg_match('/`(.+)`/', implode("\n", $notification->toMail($user)->introLines), $match);
+        $password = $match[1] ?? $password;
+
+        return true;
+    });
+
+    return $password;
+}
+
+test('creating an asesor sends one email with the temporary password and verification link', function () {
     $this->actingAs($this->admin)
         ->post('/master/asesor', ['nama' => 'Budi Santoso', 'no_reg' => 'MET.001.2026', 'email' => 'budi@example.com'])
         ->assertRedirect(route('master.asesor.index'));
@@ -27,25 +44,46 @@ test('creating an asesor sends a verification link instead of a password', funct
 
     expect($user->role)->toBe(UserRole::Asesor)
         ->and($user->isVerified())->toBeFalse()
+        ->and($user->must_change_password)->toBeTrue()
         ->and($user->asesor->nama)->toBe('Budi Santoso');
 
-    Notification::assertSentTo($user, AsesorVerifikasiAkun::class);
-    Notification::assertNotSentTo($user, AsesorPasswordSementara::class);
+    Notification::assertSentToTimes($user, AsesorVerifikasiAkun::class, 1);
+
+    $mail = Notification::sent($user, AsesorVerifikasiAkun::class)->first()->toMail($user);
+    expect(implode("\n", $mail->introLines))->toContain('budi@example.com')->toContain('Password sementara')
+        ->and($mail->actionUrl)->toContain('/asesor/verifikasi/');
 });
 
-test('verification link activates the account and emails a temporary password once', function () {
+test('the emailed password only works after the verification link is clicked', function () {
+    $this->actingAs($this->admin)
+        ->post('/master/asesor', ['nama' => 'Budi Santoso', 'no_reg' => 'MET.001.2026', 'email' => 'budi@example.com']);
+    auth()->logout();
+
+    $user = User::firstWhere('email', 'budi@example.com');
+    $kredensial = ['email' => 'budi@example.com', 'password' => passwordDariEmail($user)];
+
+    $this->post('/login/asesor', $kredensial)->assertSessionHasErrors('email');
+    $this->assertGuest();
+
+    $this->get(AsesorVerifikasiAkun::url($user))->assertInertia(fn ($page) => $page->where('status', 'activated'));
+
+    $this->post('/login/asesor', $kredensial)->assertSessionHasNoErrors();
+    $this->assertAuthenticatedAs($user);
+});
+
+test('verification link activates the account once without changing the password', function () {
     $user = asesorBelumVerifikasi()->user;
+    $hash = $user->password;
     $url = AsesorVerifikasiAkun::url($user);
 
     $this->get($url)->assertInertia(fn ($page) => $page->component('auth/asesor-verification')->where('status', 'activated'));
 
     $user->refresh();
-    expect($user->isVerified())->toBeTrue()->and($user->must_change_password)->toBeTrue();
+    expect($user->isVerified())->toBeTrue()->and($user->password)->toBe($hash);
 
-    // Membuka link yang sama lagi tidak membuat dan mengirim password baru.
     $this->get($url)->assertInertia(fn ($page) => $page->where('status', 'already'));
 
-    Notification::assertSentToTimes($user, AsesorPasswordSementara::class, 1);
+    Notification::assertNothingSentTo($user);
 });
 
 test('expired or tampered verification links do not activate the account', function () {
@@ -60,7 +98,6 @@ test('expired or tampered verification links do not activate the account', funct
     $this->get($url)->assertInertia(fn ($page) => $page->where('status', 'invalid'));
 
     expect($user->fresh()->isVerified())->toBeFalse();
-    Notification::assertNotSentTo($user, AsesorPasswordSementara::class);
 });
 
 test('unverified asesor can not log in even with the right password', function () {
@@ -98,6 +135,9 @@ test('verification link can be resent only while the account is unverified', fun
 
     Notification::assertSentTo($belum->user, AsesorVerifikasiAkun::class);
     Notification::assertNotSentTo($sudah->user, AsesorVerifikasiAkun::class);
+
+    // Password sementara dibuat ulang setiap kirim ulang dan tercantum di email yang baru.
+    expect(Hash::check(passwordDariEmail($belum->user), $belum->user->fresh()->password))->toBeTrue();
 });
 
 test('correcting the email of an unverified asesor resends the verification link', function () {
