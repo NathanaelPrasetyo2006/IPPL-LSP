@@ -208,8 +208,11 @@ test('period detail lists applicants and can filter them by scheme and search', 
             ->has('pendaftar.data', 2)
             ->where('periode.kuota_terpakai', 2)
             ->has('pendaftar.data.0', fn ($row) => $row
-                ->hasAll(['kode_asesi', 'nama', 'email', 'no_telp', 'skema', 'lokasi', 'status'])
-                ->etc()));
+                // ulid wajib ada: dipakai halaman untuk link ke verifikasi; tanpanya halaman gagal dirender.
+                ->hasAll(['ulid', 'kode_asesi', 'nama', 'email', 'no_telp', 'skema', 'lokasi', 'status'])
+                ->etc()))
+        ->assertInertia(fn ($page) => $page->where('pendaftar.data', fn ($baris) => collect($baris)
+            ->pluck('ulid')->sort()->values()->all() === collect([$budi->ulid, $sari->ulid])->sort()->values()->all()));
 
     $this->actingAs($this->admin)
         ->get("{$url}?skema={$skemaB->ulid}")

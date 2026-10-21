@@ -93,6 +93,7 @@ class PeriodePendaftaranController extends Controller
             ->withQueryString()
             ->through(fn (PermohonanSertifikasi $p) => [
                 'id_permohonan' => $p->id_permohonan,
+                'ulid' => $p->ulid,
                 'nomor' => $p->nomor,
                 'kode_asesi' => $p->dataDiri?->kode_asesi,
                 'nama' => $p->dataDiri?->nama_lengkap,
